@@ -33,8 +33,8 @@ export default function LoginPage() {
         <div className="flex items-center gap-3">
           <img src="/jump-logo.png" alt="JuMP" style={{ width: 36, height: 36, objectFit: 'contain' }} />
           <div>
-            <div className="font-medium" style={{ fontSize: 15, letterSpacing: '-0.01em' }}>JuMP</div>
-            <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>Junior de Mines Paris</div>
+            <div className="font-medium" style={{ fontSize: 15, letterSpacing: '-0.01em' }}>Oracle</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>JuMP · Mines Paris</div>
           </div>
         </div>
 
@@ -75,7 +75,7 @@ export default function LoginPage() {
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <img src="/jump-logo.png" alt="JuMP" style={{ width: 32, height: 32, objectFit: 'contain' }} />
-            <div className="font-medium">JuMP</div>
+            <div className="font-medium">Oracle</div>
           </div>
 
           <div style={{ marginBottom: 32 }}>

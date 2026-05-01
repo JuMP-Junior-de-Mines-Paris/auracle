@@ -58,8 +58,8 @@ export default function Sidebar() {
         >
           <img src="/jump-logo.png" alt="JuMP" style={{ width: 28, height: 28, objectFit: 'contain', flexShrink: 0 }} />
           <div className="sb-label flex flex-col leading-tight">
-            <span style={{ fontWeight: 500, fontSize: 14, letterSpacing: '-0.01em' }}>JuMP</span>
-            <span className="font-mono" style={{ fontSize: 10.5, color: 'var(--ink-3)' }}>ERP · Mines Paris</span>
+            <span style={{ fontWeight: 500, fontSize: 14, letterSpacing: '-0.01em' }}>Oracle</span>
+            <span className="font-mono" style={{ fontSize: 10.5, color: 'var(--ink-3)' }}>JuMP · Mines Paris</span>
           </div>
         </div>
 
