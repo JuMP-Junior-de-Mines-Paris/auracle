@@ -1,20 +1,19 @@
 import { useState } from 'react'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faXmark } from '@fortawesome/free-solid-svg-icons'
+import { Icon } from '../../../shared/lib/icons'
 
 const FIELDS = [
-  { name: 'prenom',                   label: 'Prénom',          type: 'text',   required: true },
-  { name: 'nom',                      label: 'Nom',             type: 'text',   required: true },
-  { name: 'entreprise_actuelle',      label: 'Entreprise',      type: 'text' },
-  { name: 'titre_poste',              label: 'Poste',           type: 'text' },
-  { name: 'email',                    label: 'Email',           type: 'email' },
-  { name: 'telephone',                label: 'Téléphone',       type: 'tel' },
-  { name: 'linkedin',                 label: 'LinkedIn (URL)',  type: 'url' },
-  { name: 'ville',                    label: 'Ville',           type: 'text' },
-  { name: 'pays',                     label: 'Pays',            type: 'text' },
-  { name: 'diplomes',                 label: 'Diplômes',        type: 'text' },
-  { name: 'annee_obtention_diplome',  label: 'Année diplôme',  type: 'number' },
-  { name: 'id_profil',               label: 'ID Profil',       type: 'text' },
+  { name: 'prenom',                  label: 'Prénom',         type: 'text',   required: true },
+  { name: 'nom',                     label: 'Nom',            type: 'text',   required: true },
+  { name: 'entreprise_actuelle',     label: 'Entreprise',     type: 'text' },
+  { name: 'titre_poste',             label: 'Poste',          type: 'text' },
+  { name: 'email',                   label: 'Email',          type: 'email' },
+  { name: 'telephone',               label: 'Téléphone',      type: 'tel' },
+  { name: 'linkedin',                label: 'LinkedIn (URL)', type: 'url' },
+  { name: 'ville',                   label: 'Ville',          type: 'text' },
+  { name: 'pays',                    label: 'Pays',           type: 'text' },
+  { name: 'diplomes',                label: 'Diplômes',       type: 'text' },
+  { name: 'annee_obtention_diplome', label: 'Année diplôme',  type: 'number' },
+  { name: 'id_profil',               label: 'ID Profil',      type: 'text' },
 ]
 
 export default function ContactForm({ onClose, onSubmit }) {
@@ -23,10 +22,9 @@ export default function ContactForm({ onClose, onSubmit }) {
   const [error, setError] = useState(null)
 
   function handleChange(e, field) {
-    const value =
-      field.type === 'number'
-        ? e.target.value === '' ? null : parseInt(e.target.value, 10)
-        : e.target.value
+    const value = field.type === 'number'
+      ? (e.target.value === '' ? null : parseInt(e.target.value, 10))
+      : e.target.value
     setForm(prev => ({ ...prev, [field.name]: value }))
   }
 
@@ -46,51 +44,46 @@ export default function ContactForm({ onClose, onSubmit }) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
+      style={{ position: 'fixed', inset: 0, background: 'rgba(26,22,20,.35)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 50, padding: 0 }}
+      className="sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white w-full sm:rounded-xl sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl"
+        style={{ background: '#fffdf8', width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', borderRadius: '16px 16px 0 0', display: 'flex', flexDirection: 'column' }}
+        className="sm:rounded-2xl"
         onClick={e => e.stopPropagation()}
       >
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
-          <h2 className="text-xl font-bold text-slate-800">Nouveau contact</h2>
-          <button className="text-slate-400 hover:text-slate-600" onClick={onClose} aria-label="Fermer">
-            <FontAwesomeIcon icon={faXmark} size="lg" />
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: '#fffdf8', zIndex: 1 }}>
+          <h2 className="font-serif" style={{ fontSize: 26 }}>Nouveau contact</h2>
+          <button onClick={onClose} style={{ color: 'var(--ink-3)', background: 'transparent', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 8 }}>
+            <Icon name="x" size={18} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {FIELDS.map(field => (
-            <div key={field.name}>
-              <label className="block text-sm text-slate-600 mb-1">
-                {field.label}
-                {field.required && <span className="text-red-500 ml-1">*</span>}
-              </label>
-              <input
-                type={field.type}
-                required={field.required}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#005a9f] focus:border-transparent"
-                onChange={e => handleChange(e, field)}
-              />
-            </div>
-          ))}
+        <form onSubmit={handleSubmit} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {FIELDS.map(field => (
+              <div key={field.name} style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: ['linkedin', 'diplomes'].includes(field.name) ? 'span 2' : undefined }}>
+                <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink-2)' }}>
+                  {field.label}
+                  {field.required && <span style={{ color: 'var(--bad)', marginLeft: 4 }}>*</span>}
+                </label>
+                <input
+                  type={field.type}
+                  required={field.required}
+                  className="field ring-ember"
+                  style={{ fontSize: 13 }}
+                  onChange={e => handleChange(e, field)}
+                />
+              </div>
+            ))}
+          </div>
 
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && <p style={{ fontSize: 13, color: 'var(--bad)' }}>{error}</p>}
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800"
-              onClick={onClose}
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-2 bg-[#005a9f] text-white rounded-lg text-sm hover:bg-[#004a8f] disabled:opacity-50 transition-colors"
-            >
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 8 }}>
+            <button type="button" className="btn-ghost" onClick={onClose}>Annuler</button>
+            <button type="submit" className="btn-ember" disabled={loading}>
               {loading ? 'Enregistrement…' : 'Enregistrer'}
             </button>
           </div>

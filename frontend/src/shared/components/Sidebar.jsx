@@ -1,153 +1,158 @@
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { NavLink } from 'react-router-dom'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {
-  faAddressBook,
-  faBriefcase,
-  faChartBar,
-  faGear,
-  faList,
-  faRightFromBracket,
-  faChevronLeft,
-  faChevronRight,
-} from '@fortawesome/free-solid-svg-icons'
+import { Icon } from '../../shared/lib/icons'
 import { useAuth } from '../../features/auth/hooks/useAuth'
 
-const NAV_ITEMS = [
-  { to: '/annuaire', icon: faAddressBook, label: 'Annuaire', enabled: true },
-  { to: '/annuaire/listes', icon: faList, label: 'Listes', enabled: true },
-  { to: '/missions', icon: faBriefcase, label: 'Missions', enabled: false },
-  { to: '/dashboard', icon: faChartBar, label: 'Dashboard', enabled: false },
-  { to: '/settings', icon: faGear, label: 'Paramètres', enabled: false },
+const NAV_SECTIONS = [
+  {
+    title: 'Pilotage',
+    items: [
+      { to: '/dashboard',  icon: 'home',      label: 'Tableau de bord' },
+      { to: '/missions',   icon: 'briefcase', label: 'Missions' },
+    ],
+  },
+  {
+    title: 'Prospection',
+    items: [
+      { to: '/annuaire',        icon: 'users',    label: 'Annuaire' },
+      { to: '/annuaire/listes', icon: 'bookmark', label: 'Listes' },
+    ],
+  },
+  {
+    title: 'Administration',
+    items: [
+      { to: '/settings', icon: 'settings', label: 'Paramètres' },
+    ],
+  },
 ]
 
 export default function Sidebar() {
-  const [expanded, setExpanded] = useState(() => window.innerWidth >= 1024)
+  const [narrow, setNarrow] = useState(false)
   const { user, role, logout } = useAuth()
+  const navigate = useNavigate()
   const initials = (user?.email?.[0] ?? 'U').toUpperCase()
+
+  async function handleLogout() {
+    await logout()
+    navigate('/login')
+  }
 
   return (
     <>
       {/* Desktop sidebar */}
       <aside
-        className={`hidden md:flex flex-col h-screen bg-white border-r border-slate-200 transition-all duration-200 flex-shrink-0 ${
-          expanded ? 'w-56' : 'w-12'
-        }`}
+        className={`hidden md:flex flex-col h-screen sticky top-0 flex-shrink-0 ${narrow ? 'sb-narrow' : ''}`}
+        style={{
+          width: narrow ? 64 : 240,
+          borderRight: '1px solid var(--line)',
+          background: 'var(--paper)',
+          transition: 'width .2s ease',
+        }}
       >
-        {/* Logo + toggle */}
+        {/* Brand */}
         <div
-          className={`flex items-center h-14 border-b border-slate-100 px-3 ${
-            expanded ? 'justify-between' : 'justify-center'
-          }`}
+          className="flex items-center gap-2.5 px-3 py-3.5 cursor-pointer"
+          style={{ borderBottom: '1px solid var(--line)' }}
+          onClick={() => setNarrow(v => !v)}
+          title={narrow ? 'Agrandir le menu' : 'Réduire le menu'}
         >
-          {expanded && (
-            <span className="font-bold text-[#005a9f] text-sm tracking-wide select-none">
-              JUMP ORACLE
-            </span>
-          )}
-          <button
-            className="text-slate-400 hover:text-[#005a9f] transition-colors p-1"
-            onClick={() => setExpanded(v => !v)}
-            aria-label={expanded ? 'Réduire le menu' : 'Agrandir le menu'}
-          >
-            <FontAwesomeIcon
-              icon={expanded ? faChevronLeft : faChevronRight}
-              size="sm"
-            />
-          </button>
+          <img src="/jump-logo.png" alt="JuMP" style={{ width: 28, height: 28, objectFit: 'contain', flexShrink: 0 }} />
+          <div className="sb-label flex flex-col leading-tight">
+            <span style={{ fontWeight: 500, fontSize: 14, letterSpacing: '-0.01em' }}>JuMP</span>
+            <span className="font-mono" style={{ fontSize: 10.5, color: 'var(--ink-3)' }}>ERP · Mines Paris</span>
+          </div>
         </div>
 
-        {/* Nav items */}
-        <nav className="flex-1 py-4 overflow-hidden">
-          {NAV_ITEMS.map(item =>
-            item.enabled ? (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                title={!expanded ? item.label : undefined}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 mx-2 rounded-lg transition-colors text-sm ${
-                    isActive
-                      ? 'bg-[#005a9f] text-white'
-                      : 'text-slate-600 hover:bg-slate-100'
-                  } ${!expanded ? 'justify-center' : ''}`
-                }
-              >
-                <FontAwesomeIcon icon={item.icon} className="w-4 h-4 flex-shrink-0" />
-                {expanded && <span>{item.label}</span>}
-              </NavLink>
-            ) : (
+        {/* Search */}
+        <div className="sb-search px-3 pt-3">
+          <div style={{ position: 'relative' }}>
+            <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-3)', pointerEvents: 'none' }} />
+            <input
+              placeholder="Rechercher…"
+              className="field"
+              style={{ fontSize: 13, paddingTop: 6, paddingBottom: 6, paddingLeft: 32, paddingRight: 36 }}
+            />
+            <span className="kbd" style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)' }}>⌘K</span>
+          </div>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 overflow-auto py-3 px-2" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {NAV_SECTIONS.map(section => (
+            <div key={section.title} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <div
-                key={item.to}
-                title={!expanded ? `${item.label} (bientôt)` : undefined}
-                className={`flex items-center gap-3 px-3 py-2.5 mx-2 rounded-lg text-slate-300 cursor-not-allowed text-sm select-none ${
-                  !expanded ? 'justify-center' : ''
-                }`}
+                className="sb-section-title px-2 mb-1"
+                style={{ fontSize: 10.5, fontWeight: 500, color: 'var(--ink-4)', letterSpacing: '.08em', textTransform: 'uppercase' }}
               >
-                <FontAwesomeIcon icon={item.icon} className="w-4 h-4 flex-shrink-0" />
-                {expanded && (
-                  <span className="flex items-center gap-2">
-                    {item.label}
-                    <span className="text-xs bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded">
-                      Bientôt
-                    </span>
-                  </span>
-                )}
+                {section.title}
               </div>
-            )
-          )}
+              {section.items.map(item => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === '/annuaire'}
+                  title={narrow ? item.label : undefined}
+                  className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                >
+                  <Icon name={item.icon} size={16} />
+                  <span className="sb-label flex-1">{item.label}</span>
+                </NavLink>
+              ))}
+            </div>
+          ))}
         </nav>
 
-        {/* User + logout */}
-        <div
-          className={`border-t border-slate-100 p-3 flex items-center gap-3 ${
-            !expanded ? 'justify-center' : ''
-          }`}
-        >
-          <div className="w-8 h-8 rounded-full bg-[#005a9f] text-white flex items-center justify-center text-sm font-semibold flex-shrink-0">
-            {initials}
-          </div>
-          {expanded && (
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-slate-700 truncate">{user?.email}</p>
-              <p className="text-xs text-slate-400 capitalize">
-                {role?.replace('_', ' ')}
-              </p>
-            </div>
-          )}
-          {expanded && (
-            <button
-              className="text-slate-400 hover:text-red-500 transition-colors"
-              onClick={logout}
-              title="Déconnexion"
+        {/* User footer */}
+        <div className="px-2 py-2" style={{ borderTop: '1px solid var(--line)' }}>
+          <div className="nav-item" style={{ padding: '6px 8px' }}>
+            <span
+              className="avatar"
+              style={{ width: 26, height: 26, background: 'var(--ember)', color: '#fff', fontSize: 11, flexShrink: 0 }}
             >
-              <FontAwesomeIcon icon={faRightFromBracket} size="sm" />
+              {initials}
+            </span>
+            <div className="sb-footer-text flex-1 flex flex-col leading-tight min-w-0">
+              <span style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user?.email}
+              </span>
+              <span style={{ fontSize: 11, color: 'var(--ink-3)', textTransform: 'capitalize' }}>
+                {role?.replace('_', ' ')}
+              </span>
+            </div>
+            <button
+              className="sb-footer-text"
+              onClick={handleLogout}
+              title="Déconnexion"
+              style={{ color: 'var(--ink-3)', background: 'transparent', border: 'none', padding: 4, borderRadius: 6, cursor: 'pointer', flexShrink: 0 }}
+            >
+              <Icon name="logout" size={14} />
             </button>
-          )}
+          </div>
         </div>
       </aside>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 flex z-40 safe-area-inset-bottom">
-        {NAV_ITEMS.filter(i => i.enabled).map(item => (
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 flex" style={{ background: '#fffdf8', borderTop: '1px solid var(--line)' }}>
+        {NAV_SECTIONS.flatMap(s => s.items).slice(0, 4).map(item => (
           <NavLink
             key={item.to}
             to={item.to}
+            end={item.to === '/annuaire'}
             className={({ isActive }) =>
-              `flex-1 flex flex-col items-center py-2 text-xs gap-1 ${
-                isActive ? 'text-[#005a9f]' : 'text-slate-400'
-              }`
+              `flex-1 flex flex-col items-center py-2 gap-1 text-xs ${isActive ? '' : ''}`
             }
+            style={({ isActive }) => ({ color: isActive ? 'var(--ember)' : 'var(--ink-3)' })}
           >
-            <FontAwesomeIcon icon={item.icon} />
-            <span>{item.label}</span>
+            <Icon name={item.icon} size={18} />
+            <span style={{ fontSize: 10 }}>{item.label}</span>
           </NavLink>
         ))}
         <button
-          className="flex-1 flex flex-col items-center py-2 text-xs gap-1 text-slate-400"
-          onClick={logout}
+          className="flex-1 flex flex-col items-center py-2 gap-1"
+          style={{ color: 'var(--ink-3)', fontSize: 10, background: 'transparent', border: 'none', cursor: 'pointer' }}
+          onClick={handleLogout}
         >
-          <FontAwesomeIcon icon={faRightFromBracket} />
+          <Icon name="logout" size={18} />
           <span>Déco.</span>
         </button>
       </nav>
