@@ -88,3 +88,10 @@ $$;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
+
+-- ── Additions (2026-05-02) ────────────────────────────────────────────
+-- contacts.tags text[] DEFAULT '{}'
+-- profiles.email text
+-- list_shares table (see migrations/001_improvements.sql)
+-- RPCs: add_tag_to_contacts, remove_tag_from_contact
+-- RLS: profiles authenticated read all
