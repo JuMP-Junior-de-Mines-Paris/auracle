@@ -101,9 +101,7 @@ export default function MissionDetailPage() {
           team={team}
           onAdd={addTeamMember}
           onRemove={removeTeamMember}
-          currentUserId={user?.id}
-          missionCreatedBy={mission.created_by}
-          chefDeProjet={mission.chef_de_projet}
+          canManage={canEdit}
         />
       )}
 

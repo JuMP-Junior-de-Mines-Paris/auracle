@@ -14,7 +14,7 @@ export function useDashboard() {
       const { data: { user } } = await supabase.auth.getUser()
       const today = new Date().toISOString().split('T')[0]
 
-      const [allRes, lateRes, upcomingRes, myTeamRes, allTeamRes] = await Promise.all([
+      const [allRes, lateRes, upcomingRes, allTeamRes] = await Promise.all([
         supabase.from('missions')
           .select('*, chef:profiles!chef_de_projet(prenom, nom)')
           .order('created_at', { ascending: false }),
@@ -29,21 +29,15 @@ export function useDashboard() {
           .order('due_date')
           .limit(5),
         supabase.from('mission_team')
-          .select('mission_id')
-          .eq('profile_id', user.id),
-        supabase.from('mission_team')
-          .select('mission_id, profile_id'),
+          .select('mission_id'),
       ])
 
       const all = allRes.data ?? []
       const activeMissionIds = new Set(all.filter(m => m.status === 'active').map(m => m.id))
-      const myMissionIds = new Set((myTeamRes.data ?? []).map(r => r.mission_id))
-      const activeConsultants = new Set(
-        (allTeamRes.data ?? []).filter(r => activeMissionIds.has(r.mission_id)).map(r => r.profile_id)
-      ).size
+      const activeConsultants = (allTeamRes.data ?? []).filter(r => activeMissionIds.has(r.mission_id)).length
 
       setAllMissions(all)
-      setMyMissions(all.filter(m => m.chef_de_projet === user.id || myMissionIds.has(m.id)))
+      setMyMissions(all.filter(m => m.chef_de_projet === user.id))
       setUpcomingMilestones(upcomingRes.data ?? [])
       setKpis({
         activeMissions: activeMissionIds.size,

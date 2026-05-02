@@ -13,12 +13,12 @@ export function useMissionDetail(id) {
     setLoading(true)
     const [mRes, tRes, mlRes, meRes] = await Promise.all([
       supabase.from('missions').select('*, chef:profiles!chef_de_projet(prenom, nom)').eq('id', id).single(),
-      supabase.from('mission_team').select('profile_id, member:profiles!profile_id(prenom, nom, role)').eq('mission_id', id),
+      supabase.from('mission_team').select('*').eq('mission_id', id).order('created_at'),
       supabase.from('milestones').select('*').eq('mission_id', id).order('due_date'),
       supabase.from('meetings').select('*').eq('mission_id', id).order('date', { ascending: false }),
     ])
     setMission(mRes.data ?? null)
-    setTeam((tRes.data ?? []).map(r => ({ id: r.profile_id, ...r.member })))
+    setTeam(tRes.data ?? [])
     setMilestones(mlRes.data ?? [])
     setMeetings(meRes.data ?? [])
     setLoading(false)
@@ -26,16 +26,20 @@ export function useMissionDetail(id) {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
-  async function addTeamMember(profileId) {
-    const { error } = await supabase.from('mission_team').insert({ mission_id: id, profile_id: profileId })
+  async function addTeamMember(fields) {
+    const { data, error } = await supabase
+      .from('mission_team')
+      .insert({ ...fields, mission_id: id })
+      .select()
+      .single()
     if (error) throw error
-    await fetchAll()
+    setTeam(prev => [...prev, data])
   }
 
-  async function removeTeamMember(profileId) {
-    const { error } = await supabase.from('mission_team').delete().match({ mission_id: id, profile_id: profileId })
+  async function removeTeamMember(memberId) {
+    const { error } = await supabase.from('mission_team').delete().eq('id', memberId)
     if (error) throw error
-    setTeam(prev => prev.filter(m => m.id !== profileId))
+    setTeam(prev => prev.filter(m => m.id !== memberId))
   }
 
   async function createMilestone(title, dueDate) {

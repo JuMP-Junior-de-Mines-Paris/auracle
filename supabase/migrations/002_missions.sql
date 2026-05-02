@@ -1,6 +1,5 @@
 -- supabase/migrations/002_missions.sql
--- Tables are created first, then cross-referencing policies are added after
--- all tables exist (missions_update references mission_team).
+-- Tables are created first, then all policies (avoids forward-reference errors).
 
 -- ─────────────────────────────────────────────
 -- 1. Tables
@@ -23,9 +22,14 @@ CREATE TABLE missions (
 );
 
 CREATE TABLE mission_team (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   mission_id uuid NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
-  profile_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  PRIMARY KEY (mission_id, profile_id)
+  prenom text NOT NULL,
+  nom text NOT NULL,
+  email text,
+  telephone text,
+  annee_promotion integer,
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE milestones (
@@ -57,7 +61,7 @@ ALTER TABLE milestones ENABLE ROW LEVEL SECURITY;
 ALTER TABLE meetings ENABLE ROW LEVEL SECURITY;
 
 -- ─────────────────────────────────────────────
--- 3. Policies (all tables exist by now)
+-- 3. Policies
 -- ─────────────────────────────────────────────
 
 CREATE POLICY "missions_select" ON missions
@@ -68,9 +72,7 @@ CREATE POLICY "missions_insert" ON missions
 
 CREATE POLICY "missions_update" ON missions
   FOR UPDATE TO authenticated USING (
-    auth.uid() = created_by
-    OR auth.uid() = chef_de_projet
-    OR EXISTS (SELECT 1 FROM mission_team WHERE mission_id = id AND profile_id = auth.uid())
+    auth.uid() = created_by OR auth.uid() = chef_de_projet
   );
 
 CREATE POLICY "missions_delete" ON missions
@@ -95,11 +97,8 @@ CREATE POLICY "milestones_select" ON milestones
 CREATE POLICY "milestones_modify" ON milestones
   FOR ALL TO authenticated USING (
     EXISTS (
-      SELECT 1 FROM missions m WHERE m.id = mission_id AND (
-        m.created_by = auth.uid()
-        OR m.chef_de_projet = auth.uid()
-        OR EXISTS (SELECT 1 FROM mission_team mt WHERE mt.mission_id = m.id AND mt.profile_id = auth.uid())
-      )
+      SELECT 1 FROM missions m WHERE m.id = mission_id
+      AND (m.created_by = auth.uid() OR m.chef_de_projet = auth.uid())
     )
   );
 
@@ -109,10 +108,7 @@ CREATE POLICY "meetings_select" ON meetings
 CREATE POLICY "meetings_modify" ON meetings
   FOR ALL TO authenticated USING (
     EXISTS (
-      SELECT 1 FROM missions m WHERE m.id = mission_id AND (
-        m.created_by = auth.uid()
-        OR m.chef_de_projet = auth.uid()
-        OR EXISTS (SELECT 1 FROM mission_team mt WHERE mt.mission_id = m.id AND mt.profile_id = auth.uid())
-      )
+      SELECT 1 FROM missions m WHERE m.id = mission_id
+      AND (m.created_by = auth.uid() OR m.chef_de_projet = auth.uid())
     )
   );

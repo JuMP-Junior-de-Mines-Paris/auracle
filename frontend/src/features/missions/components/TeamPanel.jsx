@@ -1,52 +1,55 @@
 import { useState } from 'react'
 import { Icon } from '../../../shared/lib/icons'
-import { useMembers } from '../../members/hooks/useMembers'
 
-const ROLE_LABELS = { admin: 'Admin', project_manager: 'Chef de Projet', consultant: 'Consultant' }
+const EMPTY = { prenom: '', nom: '', email: '', telephone: '', annee_promotion: '' }
 
-function MemberAvatar({ member, size = 32 }) {
-  const initials = `${member.prenom?.[0] ?? ''}${member.nom?.[0] ?? ''}`.toUpperCase() || '?'
-  const hue = (member.id ?? '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 360
-  return (
-    <span className="avatar" style={{
-      width: size, height: size,
-      background: `oklch(0.88 0.06 ${hue})`,
-      color: `oklch(0.32 0.10 ${hue})`,
-      fontSize: Math.max(10, size * 0.38),
-      border: '1px solid var(--line)',
-      flexShrink: 0,
-    }}>
-      {initials}
-    </span>
-  )
-}
+export default function TeamPanel({ team, onAdd, onRemove, canManage }) {
+  const [open, setOpen] = useState(false)
+  const [fields, setFields] = useState(EMPTY)
+  const [saving, setSaving] = useState(false)
 
-export default function TeamPanel({ team, onAdd, onRemove, currentUserId, missionCreatedBy, chefDeProjet }) {
-  const { members } = useMembers()
-  const [query, setQuery] = useState('')
-  const canManage = currentUserId === missionCreatedBy || currentUserId === chefDeProjet
-  const teamIds = new Set(team.map(m => m.id))
-  const filtered = members.filter(m => {
-    if (teamIds.has(m.id)) return false
-    if (!query.trim()) return true
-    const q = query.toLowerCase()
-    return `${m.prenom} ${m.nom}`.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q)
-  })
+  function set(key, val) { setFields(prev => ({ ...prev, [key]: val })) }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!fields.prenom.trim() || !fields.nom.trim()) return
+    setSaving(true)
+    try {
+      await onAdd({
+        prenom: fields.prenom.trim(),
+        nom: fields.nom.trim(),
+        email: fields.email.trim() || null,
+        telephone: fields.telephone.trim() || null,
+        annee_promotion: fields.annee_promotion ? Number(fields.annee_promotion) : null,
+      })
+      setFields(EMPTY)
+      setOpen(false)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {team.length === 0 && (
-        <div style={{ color: 'var(--ink-3)', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>Aucun consultant assigné.</div>
+        <div style={{ color: 'var(--ink-3)', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>Aucun membre dans l'équipe.</div>
       )}
+
       {team.map(m => (
-        <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, background: 'var(--paper-2)', border: '1px solid var(--line)' }}>
-          <MemberAvatar member={m} />
-          <div style={{ flex: 1 }}>
+        <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 8, background: 'var(--paper-2)', border: '1px solid var(--line)' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 500 }}>{m.prenom} {m.nom}</div>
-            <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>{ROLE_LABELS[m.role] ?? m.role}</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-3)', display: 'flex', flexWrap: 'wrap', gap: '4px 12px', marginTop: 2 }}>
+              {m.email && <span>{m.email}</span>}
+              {m.telephone && <span>{m.telephone}</span>}
+              {m.annee_promotion && <span>Promo {m.annee_promotion}</span>}
+            </div>
           </div>
           {canManage && (
-            <button onClick={() => onRemove(m.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', padding: 4 }}>
+            <button
+              onClick={() => onRemove(m.id)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', padding: 4, flexShrink: 0 }}
+            >
               <Icon name="x" size={13} />
             </button>
           )}
@@ -54,26 +57,44 @@ export default function TeamPanel({ team, onAdd, onRemove, currentUserId, missio
       ))}
 
       {canManage && (
-        <div style={{ marginTop: 8 }}>
-          <input
-            className="field"
-            style={{ fontSize: 13, marginBottom: 8 }}
-            placeholder="Rechercher un membre…"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-          />
-          {query.trim() && filtered.map(m => (
-            <button
-              key={m.id}
-              className="btn-ghost"
-              style={{ width: '100%', justifyContent: 'flex-start', fontSize: 13, marginBottom: 4 }}
-              onClick={() => { onAdd(m.id); setQuery('') }}
-            >
-              <MemberAvatar member={m} size={24} />
-              <span style={{ marginLeft: 8 }}>{m.prenom} {m.nom}</span>
-            </button>
-          ))}
-        </div>
+        !open ? (
+          <button className="btn-ghost flex items-center gap-1.5" style={{ alignSelf: 'flex-start', marginTop: 4 }} onClick={() => setOpen(true)}>
+            <Icon name="plus" size={13} /> Ajouter un membre
+          </button>
+        ) : (
+          <form onSubmit={handleSubmit} className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Prénom *</label>
+                <input className="field" style={{ marginTop: 4, fontSize: 13 }} value={fields.prenom} onChange={e => set('prenom', e.target.value)} placeholder="Prénom" required />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Nom *</label>
+                <input className="field" style={{ marginTop: 4, fontSize: 13 }} value={fields.nom} onChange={e => set('nom', e.target.value)} placeholder="Nom" required />
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Email</label>
+                <input className="field" type="email" style={{ marginTop: 4, fontSize: 13 }} value={fields.email} onChange={e => set('email', e.target.value)} placeholder="email@exemple.fr" />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Téléphone</label>
+                <input className="field" style={{ marginTop: 4, fontSize: 13 }} value={fields.telephone} onChange={e => set('telephone', e.target.value)} placeholder="06 12 34 56 78" />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Année de promo</label>
+                <input className="field" type="number" style={{ marginTop: 4, fontSize: 13 }} value={fields.annee_promotion} onChange={e => set('annee_promotion', e.target.value)} placeholder="2025" min="1900" max="2100" />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button type="button" className="btn-ghost" onClick={() => { setOpen(false); setFields(EMPTY) }}>Annuler</button>
+              <button type="submit" className="btn-ember" disabled={saving || !fields.prenom.trim() || !fields.nom.trim()} style={{ opacity: saving ? 0.6 : 1 }}>
+                {saving ? '…' : 'Ajouter'}
+              </button>
+            </div>
+          </form>
+        )
       )}
     </div>
   )
