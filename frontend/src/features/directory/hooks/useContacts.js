@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../../shared/lib/supabase'
 
-export function useContacts({ page = 1, pageSize = 50, query = '' } = {}) {
+export function useContacts({ page = 1, pageSize = 50, query = '', statusFilter = undefined } = {}) {
   const [contacts, setContacts] = useState([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -21,6 +21,10 @@ export function useContacts({ page = 1, pageSize = 50, query = '' } = {}) {
       )
     }
 
+    if (statusFilter !== undefined) {
+      q = statusFilter === null ? q.is('status', null) : q.eq('status', statusFilter)
+    }
+
     q = q.range(from, to)
 
     const { data, count, error: err } = await q
@@ -30,7 +34,7 @@ export function useContacts({ page = 1, pageSize = 50, query = '' } = {}) {
       setTotal(count ?? 0)
     }
     setLoading(false)
-  }, [page, pageSize, query])
+  }, [page, pageSize, query, statusFilter])
 
   useEffect(() => { fetchContacts() }, [fetchContacts])
 

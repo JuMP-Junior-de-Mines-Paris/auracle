@@ -8,19 +8,30 @@ import ContactForm from '../components/ContactForm'
 import ContactStatusBadge from '../components/ContactStatusBadge'
 
 const KPI_CONFIG = [
-  { key: 'total',      label: 'Total',        color: 'var(--ink)' },
-  { key: 'aContacter', label: 'À contacter',  color: '#6b7280'    },
-  { key: 'contacte',   label: 'Contactés',    color: '#1d4ed8'    },
-  { key: 'repondu',    label: 'Répondu',      color: '#d97706'    },
-  { key: 'travaille',  label: 'Travaillés',   color: '#15803d'    },
+  { key: 'total',      label: 'Total',        color: 'var(--ink)', statusValue: undefined },
+  { key: 'aContacter', label: 'À contacter',  color: '#6b7280',    statusValue: 'à contacter' },
+  { key: 'contacte',   label: 'Contactés',    color: '#1d4ed8',    statusValue: 'contacté' },
+  { key: 'repondu',    label: 'Répondu',      color: '#d97706',    statusValue: 'répondu' },
+  { key: 'travaille',  label: 'Travaillés',   color: '#15803d',    statusValue: 'travaillé' },
 ]
 
-function StatCard({ count, label, color }) {
+function StatCard({ count, label, color, active, onClick }) {
   return (
-    <div className="card" style={{ padding: '14px 16px', borderTop: `3px solid ${color}` }}>
+    <button
+      onClick={onClick}
+      className="card"
+      style={{
+        padding: '14px 16px', borderTop: `3px solid ${color}`,
+        textAlign: 'left', cursor: 'pointer', width: '100%',
+        outline: active ? `2px solid ${color}` : 'none',
+        outlineOffset: 2,
+        background: active ? '#fffdf8' : undefined,
+        transition: 'outline .1s, box-shadow .1s',
+      }}
+    >
       <div style={{ fontSize: 26, fontWeight: 700, color, lineHeight: 1 }}>{count.toLocaleString('fr-FR')}</div>
       <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}>{label}</div>
-    </div>
+    </button>
   )
 }
 
@@ -92,6 +103,7 @@ function Pagination({ page, total, pageSize, onPage }) {
 export default function DirectoryPage() {
   const [page, setPage] = useState(1)
   const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState(undefined)
   const [selected, setSelected] = useState(new Set())
   const [openContact, setOpenContact] = useState(null)
   const [showForm, setShowForm] = useState(false)
@@ -104,8 +116,15 @@ export default function DirectoryPage() {
   const [bulkLoading, setBulkLoading] = useState(false)
   const [toast, setToast] = useState(null)
 
-  const { contacts, total, loading, createContact, updateContact, updateStatus } = useContacts({ page, pageSize: 50, query })
+  const { contacts, total, loading, createContact, updateContact, updateStatus } = useContacts({ page, pageSize: 50, query, statusFilter })
   const { stats, refetch: refetchStats } = useContactStats()
+
+  function handleKpiClick(statusValue) {
+    const next = statusFilter === statusValue ? undefined : statusValue
+    setStatusFilter(next)
+    setPage(1)
+    setSelected(new Set())
+  }
 
   async function handleStatusChange(id, status) {
     await updateStatus(id, status)
@@ -209,7 +228,14 @@ export default function DirectoryPage() {
       {/* KPI row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 20 }}>
         {KPI_CONFIG.map(k => (
-          <StatCard key={k.key} count={stats[k.key]} label={k.label} color={k.color} />
+          <StatCard
+            key={k.key}
+            count={stats[k.key]}
+            label={k.label}
+            color={k.color}
+            active={statusFilter === k.statusValue && k.statusValue !== undefined}
+            onClick={() => handleKpiClick(k.statusValue)}
+          />
         ))}
       </div>
 
