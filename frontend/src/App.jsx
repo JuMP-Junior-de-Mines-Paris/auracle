@@ -8,6 +8,7 @@ import ListsPage from './features/directory/pages/ListsPage'
 import MembersPage from './features/members/pages/MembersPage'
 import MissionsPage from './features/missions/pages/MissionsPage'
 import MissionDetailPage from './features/missions/pages/MissionDetailPage'
+import MyMissionsPage from './features/missions/pages/MyMissionsPage'
 import DashboardPage from './features/dashboard/pages/DashboardPage'
 
 function ComingSoon({ title }) {
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="/membres" element={<Protected><MembersPage /></Protected>} />
           <Route path="/missions" element={<Protected><MissionsPage /></Protected>} />
           <Route path="/missions/:id" element={<Protected><MissionDetailPage /></Protected>} />
+          <Route path="/mes-missions" element={<Protected><MyMissionsPage /></Protected>} />
           <Route path="/dashboard" element={<Protected><DashboardPage /></Protected>} />
           <Route path="/settings" element={<Protected><ComingSoon title="Paramètres" /></Protected>} />
         </Routes>

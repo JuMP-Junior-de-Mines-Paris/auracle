@@ -7,8 +7,9 @@ const NAV_SECTIONS = [
   {
     title: 'Pilotage',
     items: [
-      { to: '/dashboard',  icon: 'home',      label: 'Tableau de bord' },
-      { to: '/missions',   icon: 'briefcase', label: 'Missions' },
+      { to: '/dashboard',    icon: 'home',      label: 'Tableau de bord' },
+      { to: '/missions',     icon: 'briefcase', label: 'Missions' },
+      { to: '/mes-missions', icon: 'award',     label: 'Mes missions' },
     ],
   },
   {
@@ -61,19 +62,6 @@ export default function Sidebar() {
           <div className="sb-label flex flex-col leading-tight">
             <span style={{ fontWeight: 500, fontSize: 14, letterSpacing: '-0.01em' }}>Oracle</span>
             <span className="font-mono" style={{ fontSize: 10.5, color: 'var(--ink-3)' }}>JuMP · Mines Paris</span>
-          </div>
-        </div>
-
-        {/* Search */}
-        <div className="sb-search px-3 pt-3">
-          <div style={{ position: 'relative' }}>
-            <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-3)', pointerEvents: 'none' }} />
-            <input
-              placeholder="Rechercher…"
-              className="field"
-              style={{ fontSize: 13, paddingTop: 6, paddingBottom: 6, paddingLeft: 32, paddingRight: 36 }}
-            />
-            <span className="kbd" style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)' }}>⌘K</span>
           </div>
         </div>
 
