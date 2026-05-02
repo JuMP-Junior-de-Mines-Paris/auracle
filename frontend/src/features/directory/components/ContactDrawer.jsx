@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '../../../shared/lib/icons'
 import ContactStatusBadge from './ContactStatusBadge'
+import { useContactNotes } from '../hooks/useContactNotes'
 
 function Field({ label, value, icon }) {
   return (
@@ -33,10 +34,31 @@ function ContactAvatar({ contact, size = 48 }) {
   )
 }
 
+function NoteAuthor({ author }) {
+  if (!author) return null
+  const name = [author.prenom, author.nom].filter(Boolean).join(' ') || author.email || ''
+  return <span style={{ fontWeight: 500 }}>{name}</span>
+}
+
 export default function ContactDrawer({ contact: c, lists, onClose, onAddToList, onCreateList, onStatusChange, onEdit }) {
   const [showListPicker, setShowListPicker] = useState(false)
   const [newListName, setNewListName] = useState('')
   const [creating, setCreating] = useState(false)
+  const [noteText, setNoteText] = useState('')
+  const [savingNote, setSavingNote] = useState(false)
+  const { notes, addNote, deleteNote } = useContactNotes(c.id)
+
+  async function handleAddNote(e) {
+    e.preventDefault()
+    if (!noteText.trim()) return
+    setSavingNote(true)
+    try {
+      await addNote(noteText.trim())
+      setNoteText('')
+    } finally {
+      setSavingNote(false)
+    }
+  }
 
   async function handleCreateAndAdd() {
     if (!newListName.trim() || creating) return
@@ -114,6 +136,55 @@ export default function ContactDrawer({ contact: c, lists, onClose, onAddToList,
               <Icon name="book" size={14} /> Voir le profil MPA
             </a>
           )}
+
+          {/* Notes */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>Notes</div>
+
+            <form onSubmit={handleAddNote} style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+              <textarea
+                className="field"
+                style={{ fontSize: 13, resize: 'vertical', minHeight: 72 }}
+                placeholder="Ajouter une note…"
+                value={noteText}
+                onChange={e => setNoteText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleAddNote(e) }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="submit"
+                  className="btn-ember"
+                  disabled={savingNote || !noteText.trim()}
+                  style={{ fontSize: 13, padding: '6px 12px', opacity: (savingNote || !noteText.trim()) ? 0.5 : 1 }}
+                >
+                  {savingNote ? '…' : 'Ajouter'}
+                </button>
+              </div>
+            </form>
+
+            {notes.length === 0 ? (
+              <div style={{ fontSize: 13, color: 'var(--ink-4)', textAlign: 'center', padding: '8px 0' }}>Aucune note pour le moment.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {notes.map(n => (
+                  <div key={n.id} style={{ padding: '10px 12px', borderRadius: 10, background: 'var(--paper-2)', border: '1px solid var(--line)', position: 'relative' }}>
+                    <button
+                      onClick={() => deleteNote(n.id)}
+                      style={{ position: 'absolute', top: 8, right: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', padding: 2 }}
+                    >
+                      <Icon name="x" size={12} />
+                    </button>
+                    <div style={{ fontSize: 13, color: 'var(--ink)', whiteSpace: 'pre-wrap', lineHeight: 1.5, paddingRight: 20 }}>{n.content}</div>
+                    <div style={{ marginTop: 6, fontSize: 11, color: 'var(--ink-4)' }}>
+                      <NoteAuthor author={n.author} />
+                      {n.author && ' · '}
+                      {new Date(n.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* List picker */}
           {showListPicker && (
