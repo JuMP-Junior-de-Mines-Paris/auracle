@@ -53,13 +53,31 @@ export function useProspectingLists() {
     return (data ?? []).map(row => row.contacts)
   }
 
+  async function addContactsToList(listId, contactIds) {
+    const rows = contactIds.map(contactId => ({ list_id: listId, contact_id: contactId }))
+    const { error } = await supabase
+      .from('prospecting_list_contacts')
+      .upsert(rows, { onConflict: 'list_id,contact_id', ignoreDuplicates: true })
+    if (error) throw error
+    await fetchLists()
+  }
+
+  async function shareList(listId, userIds) {
+    const { data: { user } } = await supabase.auth.getUser()
+    const rows = userIds.map(uid => ({ list_id: listId, shared_with: uid, shared_by: user.id }))
+    const { error } = await supabase.from('list_shares').insert(rows)
+    if (error) throw error
+  }
+
   return {
     lists,
     loading,
     createList,
     addContactToList,
+    addContactsToList,
     removeContactFromList,
     fetchListContacts,
+    shareList,
     refetch: fetchLists,
   }
 }
