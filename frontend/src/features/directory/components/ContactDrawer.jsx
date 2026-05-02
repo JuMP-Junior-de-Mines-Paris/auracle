@@ -33,7 +33,7 @@ function ContactAvatar({ contact, size = 48 }) {
   )
 }
 
-export default function ContactDrawer({ contact: c, lists, onClose, onAddToList, onCreateList, onStatusChange }) {
+export default function ContactDrawer({ contact: c, lists, onClose, onAddToList, onCreateList, onStatusChange, onEdit }) {
   const [showListPicker, setShowListPicker] = useState(false)
   const [newListName, setNewListName] = useState('')
   const [creating, setCreating] = useState(false)
@@ -161,6 +161,11 @@ export default function ContactDrawer({ contact: c, lists, onClose, onAddToList,
           >
             <Icon name="bookmark" size={14} /> Liste
           </button>
+          {onEdit && (
+            <button className="btn-ghost flex items-center gap-1.5" onClick={onEdit}>
+              <Icon name="edit" size={14} /> Modifier
+            </button>
+          )}
         </div>
       </div>
     </div>,

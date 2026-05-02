@@ -41,6 +41,19 @@ export function useContacts({ page = 1, pageSize = 50, query = '' } = {}) {
       .select()
       .single()
     if (err) throw err
+    await fetchContacts()
+    return data
+  }
+
+  async function updateContact(id, contactData) {
+    const { data, error: err } = await supabase
+      .from('contacts')
+      .update(contactData)
+      .eq('id', id)
+      .select()
+      .single()
+    if (err) throw err
+    setContacts(prev => prev.map(c => c.id === id ? data : c))
     return data
   }
 
@@ -77,5 +90,5 @@ export function useContacts({ page = 1, pageSize = 50, query = '' } = {}) {
     )
   }
 
-  return { contacts, total, loading, error, createContact, updateStatus, updateTags, removeTag, refetch: fetchContacts }
+  return { contacts, total, loading, error, createContact, updateContact, updateStatus, updateTags, removeTag, refetch: fetchContacts }
 }

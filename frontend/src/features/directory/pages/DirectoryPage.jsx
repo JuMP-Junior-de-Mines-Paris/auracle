@@ -1,10 +1,28 @@
 import { useState } from 'react'
 import { Icon } from '../../../shared/lib/icons'
 import { useContacts } from '../hooks/useContacts'
+import { useContactStats } from '../hooks/useContactStats'
 import { useProspectingLists } from '../hooks/useProspectingLists'
 import ContactDrawer from '../components/ContactDrawer'
 import ContactForm from '../components/ContactForm'
 import ContactStatusBadge from '../components/ContactStatusBadge'
+
+const KPI_CONFIG = [
+  { key: 'total',      label: 'Total',        color: 'var(--ink)' },
+  { key: 'aContacter', label: 'À contacter',  color: '#6b7280'    },
+  { key: 'contacte',   label: 'Contactés',    color: '#1d4ed8'    },
+  { key: 'repondu',    label: 'Répondu',      color: '#d97706'    },
+  { key: 'travaille',  label: 'Travaillés',   color: '#15803d'    },
+]
+
+function StatCard({ count, label, color }) {
+  return (
+    <div className="card" style={{ padding: '14px 16px', borderTop: `3px solid ${color}` }}>
+      <div style={{ fontSize: 26, fontWeight: 700, color, lineHeight: 1 }}>{count.toLocaleString('fr-FR')}</div>
+      <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}>{label}</div>
+    </div>
+  )
+}
 
 function ContactAvatar({ contact, size = 28 }) {
   const initials = `${contact.prenom?.[0] ?? ''}${contact.nom?.[0] ?? ''}`.toUpperCase() || '?'
@@ -77,6 +95,7 @@ export default function DirectoryPage() {
   const [selected, setSelected] = useState(new Set())
   const [openContact, setOpenContact] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [editingContact, setEditingContact] = useState(null)
 
   // Bulk action state
   const [showListDropdown, setShowListDropdown] = useState(false)
@@ -85,11 +104,24 @@ export default function DirectoryPage() {
   const [bulkLoading, setBulkLoading] = useState(false)
   const [toast, setToast] = useState(null)
 
-  const { contacts, total, loading, createContact, updateStatus } = useContacts({ page, pageSize: 50, query })
+  const { contacts, total, loading, createContact, updateContact, updateStatus } = useContacts({ page, pageSize: 50, query })
+  const { stats, refetch: refetchStats } = useContactStats()
 
   async function handleStatusChange(id, status) {
     await updateStatus(id, status)
     setOpenContact(prev => prev?.id === id ? { ...prev, status: status ?? null } : prev)
+    refetchStats()
+  }
+
+  async function handleCreate(form) {
+    await createContact(form)
+    refetchStats()
+  }
+
+  async function handleEdit(form) {
+    const updated = await updateContact(editingContact.id, form)
+    setOpenContact(prev => prev?.id === editingContact.id ? updated : prev)
+    refetchStats()
   }
   const { lists, createList, addContactToList, addContactsToList } = useProspectingLists()
 
@@ -172,6 +204,13 @@ export default function DirectoryPage() {
         <button className="btn-ember flex items-center gap-2" onClick={() => setShowForm(true)}>
           <Icon name="plus" size={14} /> Nouveau contact
         </button>
+      </div>
+
+      {/* KPI row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 20 }}>
+        {KPI_CONFIG.map(k => (
+          <StatCard key={k.key} count={stats[k.key]} label={k.label} color={k.color} />
+        ))}
       </div>
 
       {/* Filter bar — sticky */}
@@ -374,12 +413,22 @@ export default function DirectoryPage() {
           onAddToList={addContactToList}
           onCreateList={createList}
           onStatusChange={status => handleStatusChange(openContact.id, status)}
+          onEdit={() => { setEditingContact(openContact); setOpenContact(null) }}
         />
       )}
 
       {/* New contact form */}
       {showForm && (
-        <ContactForm onClose={() => setShowForm(false)} onSubmit={createContact} />
+        <ContactForm onClose={() => setShowForm(false)} onSubmit={handleCreate} />
+      )}
+
+      {/* Edit contact form */}
+      {editingContact && (
+        <ContactForm
+          contact={editingContact}
+          onClose={() => setEditingContact(null)}
+          onSubmit={handleEdit}
+        />
       )}
     </div>
   )

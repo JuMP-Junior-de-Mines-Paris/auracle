@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Icon } from '../../../shared/lib/icons'
 
 const FIELDS = [
@@ -16,14 +17,23 @@ const FIELDS = [
   { name: 'id_profil',               label: 'ID Profil',      type: 'text' },
 ]
 
-export default function ContactForm({ onClose, onSubmit }) {
-  const [form, setForm] = useState({})
+function initForm(contact) {
+  return FIELDS.reduce((acc, f) => {
+    const val = contact?.[f.name]
+    acc[f.name] = val == null ? '' : String(val)
+    return acc
+  }, {})
+}
+
+export default function ContactForm({ contact, onClose, onSubmit }) {
+  const editing = Boolean(contact)
+  const [form, setForm] = useState(() => initForm(contact))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
   function handleChange(e, field) {
     const value = field.type === 'number'
-      ? (e.target.value === '' ? null : parseInt(e.target.value, 10))
+      ? (e.target.value === '' ? '' : e.target.value)
       : e.target.value
     setForm(prev => ({ ...prev, [field.name]: value }))
   }
@@ -33,7 +43,14 @@ export default function ContactForm({ onClose, onSubmit }) {
     setLoading(true)
     setError(null)
     try {
-      await onSubmit(form)
+      const payload = FIELDS.reduce((acc, f) => {
+        let val = form[f.name]
+        if (f.type === 'number') val = val === '' ? null : parseInt(val, 10)
+        else val = val.trim() === '' ? null : val.trim()
+        acc[f.name] = val
+        return acc
+      }, {})
+      await onSubmit(payload)
       onClose()
     } catch (err) {
       setError(err.message)
@@ -42,53 +59,57 @@ export default function ContactForm({ onClose, onSubmit }) {
     }
   }
 
-  return (
+  return createPortal(
     <div
-      style={{ position: 'fixed', inset: 0, background: 'rgba(26,22,20,.35)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 50, padding: 0 }}
-      className="sm:items-center sm:p-4"
+      style={{ position: 'fixed', inset: 0, background: 'rgba(26,22,20,.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}
       onClick={onClose}
     >
       <div
-        style={{ background: '#fffdf8', width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', borderRadius: '16px 16px 0 0', display: 'flex', flexDirection: 'column' }}
-        className="sm:rounded-2xl"
+        className="card fade-up"
+        style={{ width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}
         onClick={e => e.stopPropagation()}
       >
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: '#fffdf8', zIndex: 1 }}>
-          <h2 className="font-serif" style={{ fontSize: 26 }}>Nouveau contact</h2>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'var(--paper)', zIndex: 1 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 600 }}>{editing ? 'Modifier le contact' : 'Nouveau contact'}</h2>
           <button onClick={onClose} style={{ color: 'var(--ink-3)', background: 'transparent', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 8 }}>
-            <Icon name="x" size={18} />
+            <Icon name="x" size={16} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <form onSubmit={handleSubmit} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             {FIELDS.map(field => (
-              <div key={field.name} style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: ['linkedin', 'diplomes'].includes(field.name) ? 'span 2' : undefined }}>
-                <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink-2)' }}>
+              <div
+                key={field.name}
+                style={{ display: 'flex', flexDirection: 'column', gap: 4, gridColumn: ['linkedin', 'diplomes'].includes(field.name) ? 'span 2' : undefined }}
+              >
+                <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>
                   {field.label}
-                  {field.required && <span style={{ color: 'var(--bad)', marginLeft: 4 }}>*</span>}
+                  {field.required && <span style={{ color: '#dc2626', marginLeft: 3 }}>*</span>}
                 </label>
                 <input
                   type={field.type}
                   required={field.required}
-                  className="field ring-ember"
+                  className="field"
                   style={{ fontSize: 13 }}
+                  value={form[field.name]}
                   onChange={e => handleChange(e, field)}
                 />
               </div>
             ))}
           </div>
 
-          {error && <p style={{ fontSize: 13, color: 'var(--bad)' }}>{error}</p>}
+          {error && <p style={{ fontSize: 13, color: '#dc2626' }}>{error}</p>}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 4 }}>
             <button type="button" className="btn-ghost" onClick={onClose}>Annuler</button>
-            <button type="submit" className="btn-ember" disabled={loading}>
-              {loading ? 'Enregistrement…' : 'Enregistrer'}
+            <button type="submit" className="btn-ember" disabled={loading} style={{ opacity: loading ? 0.6 : 1 }}>
+              {loading ? '…' : editing ? 'Enregistrer' : 'Créer'}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
