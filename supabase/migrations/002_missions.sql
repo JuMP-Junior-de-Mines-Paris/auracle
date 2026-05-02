@@ -1,4 +1,10 @@
 -- supabase/migrations/002_missions.sql
+-- Tables are created first, then cross-referencing policies are added after
+-- all tables exist (missions_update references mission_team).
+
+-- ─────────────────────────────────────────────
+-- 1. Tables
+-- ─────────────────────────────────────────────
 
 CREATE TABLE missions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -16,7 +22,43 @@ CREATE TABLE missions (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE mission_team (
+  mission_id uuid NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
+  profile_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  PRIMARY KEY (mission_id, profile_id)
+);
+
+CREATE TABLE milestones (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  mission_id uuid NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
+  title text NOT NULL,
+  due_date date,
+  done boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE meetings (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  mission_id uuid NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
+  title text NOT NULL,
+  date date NOT NULL,
+  notes text,
+  attendees text[],
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- ─────────────────────────────────────────────
+-- 2. RLS
+-- ─────────────────────────────────────────────
+
 ALTER TABLE missions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mission_team ENABLE ROW LEVEL SECURITY;
+ALTER TABLE milestones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE meetings ENABLE ROW LEVEL SECURITY;
+
+-- ─────────────────────────────────────────────
+-- 3. Policies (all tables exist by now)
+-- ─────────────────────────────────────────────
 
 CREATE POLICY "missions_select" ON missions
   FOR SELECT TO authenticated USING (true);
@@ -36,16 +78,6 @@ CREATE POLICY "missions_delete" ON missions
     auth.uid() = created_by OR auth.uid() = chef_de_projet
   );
 
--- ─────────────────────────────────────────────
-
-CREATE TABLE mission_team (
-  mission_id uuid NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
-  profile_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  PRIMARY KEY (mission_id, profile_id)
-);
-
-ALTER TABLE mission_team ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "mission_team_select" ON mission_team
   FOR SELECT TO authenticated USING (true);
 
@@ -56,19 +88,6 @@ CREATE POLICY "mission_team_modify" ON mission_team
       AND (m.created_by = auth.uid() OR m.chef_de_projet = auth.uid())
     )
   );
-
--- ─────────────────────────────────────────────
-
-CREATE TABLE milestones (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  mission_id uuid NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
-  title text NOT NULL,
-  due_date date,
-  done boolean NOT NULL DEFAULT false,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-ALTER TABLE milestones ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "milestones_select" ON milestones
   FOR SELECT TO authenticated USING (true);
@@ -83,20 +102,6 @@ CREATE POLICY "milestones_modify" ON milestones
       )
     )
   );
-
--- ─────────────────────────────────────────────
-
-CREATE TABLE meetings (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  mission_id uuid NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
-  title text NOT NULL,
-  date date NOT NULL,
-  notes text,
-  attendees text[],
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-ALTER TABLE meetings ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "meetings_select" ON meetings
   FOR SELECT TO authenticated USING (true);
