@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Icon } from '../../../shared/lib/icons'
 import { useProspectingLists } from '../hooks/useProspectingLists'
-import { useContacts } from '../hooks/useContacts'
+import ContactDrawer from '../components/ContactDrawer'
 
 const LIST_COLORS = ['#015d9c', '#3f7a4d', '#b8861a', '#8d2f10', '#5a3873', '#2f6dc4']
 
@@ -16,6 +16,7 @@ export default function ListsPage() {
   const [listContacts, setListContacts] = useState([])
   const [loadingContacts, setLoadingContacts] = useState(false)
   const [prevId, setPrevId] = useState(null)
+  const [openContact, setOpenContact] = useState(null)
 
   // Load contacts when selected list changes
   if (selectedId && selectedId !== prevId) {
@@ -157,8 +158,8 @@ export default function ListsPage() {
                   </thead>
                   <tbody>
                     {listContacts.map(c => (
-                      <tr key={c.id}>
-                        <td><input type="checkbox" /></td>
+                      <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => setOpenContact(c)}>
+                        <td><input type="checkbox" onClick={e => e.stopPropagation()} /></td>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                             <span
@@ -181,12 +182,12 @@ export default function ListsPage() {
                         </td>
                         <td style={{ fontSize: 13, color: 'var(--ink-2)' }}>{c.entreprise_actuelle || '—'}</td>
                         <td style={{ fontSize: 13, color: 'var(--ink-2)' }}>
-                          {c.email ? <a href={`mailto:${c.email}`} style={{ color: 'var(--ember)' }}>{c.email}</a> : '—'}
+                          {c.email ? <a href={`mailto:${c.email}`} style={{ color: 'var(--ember)' }} onClick={e => e.stopPropagation()}>{c.email}</a> : '—'}
                         </td>
                         <td>
                           <button
                             style={{ padding: 4, color: 'var(--bad)', background: 'transparent', border: 'none', cursor: 'pointer', borderRadius: 6 }}
-                            onClick={() => handleRemove(c.id)}
+                            onClick={e => { e.stopPropagation(); handleRemove(c.id) }}
                             title="Retirer de la liste"
                           >
                             <Icon name="trash" size={14} />
@@ -201,6 +202,15 @@ export default function ListsPage() {
           </>
         )}
       </div>
+      {openContact && (
+        <ContactDrawer
+          contact={openContact}
+          lists={lists}
+          onClose={() => setOpenContact(null)}
+          onAddToList={addContactToList}
+          onCreateList={createList}
+        />
+      )}
     </div>
   )
 }
