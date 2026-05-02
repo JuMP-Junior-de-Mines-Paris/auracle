@@ -34,6 +34,7 @@ describe('useProspectingLists', () => {
     const mockChain = {
       select: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
       upsert: vi.fn().mockResolvedValue({ error: null }),
       insert: vi.fn().mockReturnThis(),
       single: vi.fn().mockReturnThis(),
@@ -58,6 +59,7 @@ describe('useProspectingLists', () => {
     const mockChain = {
       select: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
       insert: vi.fn().mockResolvedValue({ error: null }),
       upsert: vi.fn().mockReturnThis(),
       then: (resolve) => Promise.resolve({ data: [], error: null }).then(resolve),
