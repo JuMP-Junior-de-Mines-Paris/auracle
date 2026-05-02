@@ -334,6 +334,7 @@ export default function DirectoryPage() {
                 <th>Localisation</th>
                 <th>Diplôme · Année</th>
                 <th>Email</th>
+                <th>Téléphone</th>
                 <th>Statut</th>
               </tr>
             </thead>
@@ -378,6 +379,11 @@ export default function DirectoryPage() {
                       <a href={`mailto:${c.email}`} style={{ color: 'var(--ember)' }} onClick={e => e.stopPropagation()}>{c.email}</a>
                     ) : '—'}
                   </td>
+                  <td style={{ fontSize: 13, color: 'var(--ink-2)' }}>
+                    {c.telephone ? (
+                      <a href={`tel:${c.telephone}`} style={{ color: 'var(--ink-2)' }} onClick={e => e.stopPropagation()}>{c.telephone}</a>
+                    ) : '—'}
+                  </td>
                   <td onClick={e => e.stopPropagation()}>
                     <ContactStatusBadge status={c.status} onChange={status => handleStatusChange(c.id, status)} />
                   </td>
@@ -385,7 +391,7 @@ export default function DirectoryPage() {
               ))}
               {contacts.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink-3)' }}>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink-3)' }}>
                     Aucun contact trouvé.
                   </td>
                 </tr>
