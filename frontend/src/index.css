@@ -215,7 +215,7 @@
     font-weight: 600;
   }
 
-  .page-title { font-family: 'Instrument Serif', serif; font-size: 38px; line-height: 1; letter-spacing: -0.01em; }
+  .page-title { font-family: -apple-system, BlinkMacSystemFont, 'Geist', system-ui, sans-serif; font-size: 32px; font-weight: 600; line-height: 1.1; letter-spacing: -0.03em; }
 
   .sb-narrow .sb-label { display: none; }
   .sb-narrow .sb-section-title { display: none; }
