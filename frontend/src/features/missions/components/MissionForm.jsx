@@ -9,7 +9,12 @@ const STATUS_OPTIONS = [
   { value: 'archived', label: 'Archivée' },
 ]
 
-export default function MissionForm({ mission, members = [], onClose, onSave }) {
+function memberLabel(m) {
+  const name = [m.prenom, m.nom].filter(Boolean).join(' ')
+  return name || m.email || m.id
+}
+
+export default function MissionForm({ mission, members = [], loadingMembers = false, onClose, onSave }) {
   const [saving, setSaving] = useState(false)
   const [fields, setFields] = useState({
     title: mission?.title ?? '',
@@ -99,11 +104,16 @@ export default function MissionForm({ mission, members = [], onClose, onSave }) 
 
           <div>
             <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Chef de Projet</label>
-            <select className="field" style={{ marginTop: 4 }} value={fields.chef_de_projet} onChange={e => set('chef_de_projet', e.target.value)}>
-              <option value="">— Non assigné —</option>
-              {members.map(m => (
-                <option key={m.id} value={m.id}>{m.prenom} {m.nom}</option>
-              ))}
+            <select className="field" style={{ marginTop: 4 }} value={fields.chef_de_projet} onChange={e => set('chef_de_projet', e.target.value)} disabled={loadingMembers}>
+              {loadingMembers
+                ? <option value="">Chargement…</option>
+                : <>
+                    <option value="">— Non assigné —</option>
+                    {members.map(m => (
+                      <option key={m.id} value={m.id}>{memberLabel(m)}</option>
+                    ))}
+                  </>
+              }
             </select>
           </div>
 

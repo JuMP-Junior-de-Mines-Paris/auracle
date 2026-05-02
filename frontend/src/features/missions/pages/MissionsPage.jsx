@@ -26,7 +26,7 @@ export { StatusBadge }
 
 export default function MissionsPage() {
   const { missions, loading, createMission } = useMissions()
-  const { members } = useMembers()
+  const { members, loading: loadingMembers } = useMembers()
   const [showForm, setShowForm] = useState(false)
   const navigate = useNavigate()
 
@@ -79,6 +79,7 @@ export default function MissionsPage() {
       {showForm && (
         <MissionForm
           members={members}
+          loadingMembers={loadingMembers}
           onClose={() => setShowForm(false)}
           onSave={createMission}
         />

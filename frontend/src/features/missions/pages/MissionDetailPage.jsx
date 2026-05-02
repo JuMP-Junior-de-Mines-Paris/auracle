@@ -30,7 +30,7 @@ export default function MissionDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { members } = useMembers()
+  const { members, loading: loadingMembers } = useMembers()
   const { mission, team, milestones, meetings, loading, updateMission, addTeamMember, removeTeamMember, createMilestone, toggleMilestone, deleteMilestone, createMeeting, deleteMeeting } = useMissionDetail(id)
   const [activeTab, setActiveTab] = useState('overview')
   const [showEdit, setShowEdit] = useState(false)
@@ -128,6 +128,7 @@ export default function MissionDetailPage() {
         <MissionForm
           mission={mission}
           members={members}
+          loadingMembers={loadingMembers}
           onClose={() => setShowEdit(false)}
           onSave={updateMission}
         />
