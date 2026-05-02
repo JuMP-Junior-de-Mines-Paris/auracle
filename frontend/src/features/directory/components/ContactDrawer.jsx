@@ -87,6 +87,7 @@ export default function ContactDrawer({ contact: c, lists, onClose, onAddToList,
             <Field label="Localisation" value={[c.ville, c.pays].filter(Boolean).join(', ')} icon="globe" />
             <Field label="Diplôme" value={c.diplomes} icon="award" />
             <Field label="Promotion" value={c.annee_obtention_diplome} icon="calendar" />
+            {c.mpa_profile && <Field label="Profil MPA" value={c.mpa_profile} icon="link" />}
           </div>
 
           <div className="dotted-x" />
@@ -100,6 +101,17 @@ export default function ContactDrawer({ contact: c, lists, onClose, onAddToList,
               style={{ justifyContent: 'center', textDecoration: 'none' }}
             >
               <Icon name="link" size={14} /> Voir sur LinkedIn
+            </a>
+          )}
+          {c.mpa_profile && (
+            <a
+              href={c.mpa_profile}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-ghost flex items-center gap-2"
+              style={{ justifyContent: 'center', textDecoration: 'none' }}
+            >
+              <Icon name="book" size={14} /> Voir le profil MPA
             </a>
           )}
 

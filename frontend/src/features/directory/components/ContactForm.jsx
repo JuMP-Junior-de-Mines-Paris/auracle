@@ -9,7 +9,8 @@ const FIELDS = [
   { name: 'titre_poste',             label: 'Poste',          type: 'text' },
   { name: 'email',                   label: 'Email',          type: 'email' },
   { name: 'telephone',               label: 'Téléphone',      type: 'tel' },
-  { name: 'linkedin',                label: 'LinkedIn (URL)', type: 'url' },
+  { name: 'linkedin',                label: 'LinkedIn (URL)',      type: 'url' },
+  { name: 'mpa_profile',            label: 'Profil MPA (URL)',    type: 'url' },
   { name: 'ville',                   label: 'Ville',          type: 'text' },
   { name: 'pays',                    label: 'Pays',           type: 'text' },
   { name: 'diplomes',                label: 'Diplômes',       type: 'text' },
@@ -81,7 +82,7 @@ export default function ContactForm({ contact, onClose, onSubmit }) {
             {FIELDS.map(field => (
               <div
                 key={field.name}
-                style={{ display: 'flex', flexDirection: 'column', gap: 4, gridColumn: ['linkedin', 'diplomes'].includes(field.name) ? 'span 2' : undefined }}
+                style={{ display: 'flex', flexDirection: 'column', gap: 4, gridColumn: ['linkedin', 'mpa_profile', 'diplomes'].includes(field.name) ? 'span 2' : undefined }}
               >
                 <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>
                   {field.label}
