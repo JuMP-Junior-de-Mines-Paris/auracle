@@ -5,6 +5,7 @@ import Layout from './shared/components/Layout'
 import LoginPage from './features/auth/pages/LoginPage'
 import DirectoryPage from './features/directory/pages/DirectoryPage'
 import ListsPage from './features/directory/pages/ListsPage'
+import MembersPage from './features/members/pages/MembersPage'
 
 function ComingSoon({ title }) {
   return (
@@ -43,6 +44,7 @@ export default function App() {
           <Route path="/annuaire" element={<Protected><DirectoryPage /></Protected>} />
           <Route path="/annuaire/listes" element={<Protected><ListsPage /></Protected>} />
           <Route path="/annuaire/listes/:id" element={<Protected><ListsPage /></Protected>} />
+          <Route path="/membres" element={<Protected><MembersPage /></Protected>} />
           <Route path="/missions" element={<Protected><ComingSoon title="Missions" /></Protected>} />
           <Route path="/dashboard" element={<Protected><ComingSoon title="Tableau de bord" /></Protected>} />
           <Route path="/settings" element={<Protected><ComingSoon title="Paramètres" /></Protected>} />

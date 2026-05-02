@@ -21,6 +21,7 @@ const NAV_SECTIONS = [
   {
     title: 'Administration',
     items: [
+      { to: '/membres',  icon: 'user',     label: 'Membres' },
       { to: '/settings', icon: 'settings', label: 'Paramètres' },
     ],
   },
