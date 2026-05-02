@@ -1,99 +1,121 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
+import { Icon } from '../../../shared/lib/icons'
 import { useProspectingLists } from '../hooks/useProspectingLists'
-import ContactCard from '../components/ContactCard'
-import ContactModal from '../components/ContactModal'
+import ContactDrawer from '../components/ContactDrawer'
 
 export default function ListDetailPage() {
   const { id } = useParams()
-  const { lists, fetchListContacts, removeContactFromList } = useProspectingLists()
+  const { lists, fetchListContacts, removeContactFromList, addContactToList, createList } = useProspectingLists()
   const [contacts, setContacts] = useState([])
   const [loading, setLoading] = useState(true)
-  const [focusedContact, setFocusedContact] = useState(null)
-  const [contextMenu, setContextMenu] = useState(null)
+  const [openContact, setOpenContact] = useState(null)
 
   const list = lists.find(l => l.id === id)
 
   useEffect(() => {
+    setLoading(true)
     fetchListContacts(id).then(data => { setContacts(data); setLoading(false) })
-  }, [id, fetchListContacts])
+  }, [id])
 
-  const handleContextMenu = useCallback((e, contact) => {
-    setContextMenu({ x: e.clientX, y: e.clientY, contact })
-  }, [])
-
-  useEffect(() => {
-    if (!contextMenu) return
-    const close = () => setContextMenu(null)
-    window.addEventListener('click', close)
-    return () => window.removeEventListener('click', close)
-  }, [contextMenu])
-
-  async function handleRemove(contactId) {
+  async function handleRemove(contactId, e) {
+    e.stopPropagation()
     await removeContactFromList(id, contactId)
     setContacts(prev => prev.filter(c => c.id !== contactId))
-    setContextMenu(null)
   }
 
   return (
-    <div className="p-4 sm:p-6">
+    <div className="px-8 py-6 fade-up">
+      {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <Link
-          to="/annuaire/listes"
-          className="text-slate-400 hover:text-[#005a9f] transition-colors"
-          aria-label="Retour aux listes"
-        >
-          <FontAwesomeIcon icon={faArrowLeft} />
+        <Link to="/annuaire/listes" style={{ color: 'var(--ink-3)', display: 'flex' }}>
+          <Icon name="arrowL" size={16} />
         </Link>
-        <h1 className="text-2xl font-bold text-slate-800">{list?.name ?? 'Liste'}</h1>
-        <span className="text-slate-400 text-sm">{contacts.length} contact(s)</span>
+        <div>
+          <h1 className="page-title">{list?.name ?? 'Liste'}</h1>
+          <p style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 2 }}>
+            {contacts.length} contact{contacts.length !== 1 ? 's' : ''}
+          </p>
+        </div>
       </div>
 
       {loading ? (
-        <p className="text-slate-400 text-center py-12">Chargement…</p>
+        <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink-3)', fontSize: 14 }}>Chargement…</div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {contacts.map(contact => (
-            <ContactCard
-              key={contact.id}
-              contact={contact}
-              onClick={setFocusedContact}
-              onContextMenu={handleContextMenu}
-            />
-          ))}
-          {contacts.length === 0 && (
-            <p className="col-span-full text-center text-slate-500 py-12">
-              Cette liste est vide. Ajoutez des contacts depuis l'Annuaire.
-            </p>
-          )}
+        <div className="card overflow-hidden">
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>Contact</th>
+                <th>Entreprise / Poste</th>
+                <th>Email</th>
+                <th style={{ width: 40 }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {contacts.map(c => {
+                const initials = `${c.prenom?.[0] ?? ''}${c.nom?.[0] ?? ''}`.toUpperCase() || '?'
+                const hue = (((c.id_profil ?? '') + c.nom).split('').reduce((a, ch) => a + ch.charCodeAt(0), 0) * 47) % 360
+                return (
+                  <tr
+                    key={c.id}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setOpenContact(c)}
+                  >
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span className="avatar" style={{ width: 28, height: 28, background: `oklch(0.88 0.06 ${hue})`, color: `oklch(0.32 0.10 ${hue})`, fontSize: 11, border: '1px solid var(--line)', flexShrink: 0 }}>
+                          {initials}
+                        </span>
+                        <div style={{ lineHeight: 1.3 }}>
+                          <div style={{ fontWeight: 500, fontSize: 13.5 }}>{c.prenom} {c.nom?.toUpperCase()}</div>
+                          {c.id_profil && <div className="font-mono" style={{ fontSize: 11, color: 'var(--ink-4)' }}>#{c.id_profil}</div>}
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ lineHeight: 1.3 }}>
+                        <div style={{ fontSize: 13 }}>{c.entreprise_actuelle || '—'}</div>
+                        {c.titre_poste && <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>{c.titre_poste}</div>}
+                      </div>
+                    </td>
+                    <td style={{ fontSize: 13 }}>
+                      {c.email ? (
+                        <a href={`mailto:${c.email}`} style={{ color: 'var(--ember)' }} onClick={e => e.stopPropagation()}>{c.email}</a>
+                      ) : <span style={{ color: 'var(--ink-4)' }}>—</span>}
+                    </td>
+                    <td>
+                      <button
+                        style={{ padding: 4, color: 'var(--bad)', background: 'transparent', border: 'none', cursor: 'pointer', borderRadius: 6, opacity: 0.6 }}
+                        onClick={e => handleRemove(c.id, e)}
+                        title="Retirer de la liste"
+                      >
+                        <Icon name="trash" size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+              {contacts.length === 0 && (
+                <tr>
+                  <td colSpan={4} style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink-3)' }}>
+                    Cette liste est vide. Ajoutez des contacts depuis l'Annuaire.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {contextMenu && (
-        <div
-          className="fixed z-50 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-[160px]"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
-          onClick={e => e.stopPropagation()}
-        >
-          <button
-            className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-            onClick={() => { setFocusedContact(contextMenu.contact); setContextMenu(null) }}
-          >
-            Voir le profil
-          </button>
-          <button
-            className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50"
-            onClick={() => handleRemove(contextMenu.contact.id)}
-          >
-            Retirer de la liste
-          </button>
-        </div>
-      )}
-
-      {focusedContact && (
-        <ContactModal contact={focusedContact} onClose={() => setFocusedContact(null)} />
+      {openContact && (
+        <ContactDrawer
+          contact={openContact}
+          lists={lists}
+          onClose={() => setOpenContact(null)}
+          onAddToList={addContactToList}
+          onCreateList={createList}
+        />
       )}
     </div>
   )
