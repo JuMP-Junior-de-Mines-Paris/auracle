@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '../../../shared/lib/icons'
-import { useMembers } from '../../members/hooks/useMembers'
 
 const STATUS_OPTIONS = [
   { value: 'draft', label: 'Brouillon' },
@@ -10,8 +9,7 @@ const STATUS_OPTIONS = [
   { value: 'archived', label: 'Archivée' },
 ]
 
-export default function MissionForm({ mission, onClose, onSave }) {
-  const { members } = useMembers()
+export default function MissionForm({ mission, members = [], onClose, onSave }) {
   const [saving, setSaving] = useState(false)
   const [fields, setFields] = useState({
     title: mission?.title ?? '',

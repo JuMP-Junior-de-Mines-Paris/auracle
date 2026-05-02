@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../../shared/lib/icons'
 import { useMissions } from '../hooks/useMissions'
+import { useMembers } from '../../members/hooks/useMembers'
 import MissionForm from '../components/MissionForm'
 
 const STATUS_LABELS = { draft: 'Brouillon', active: 'En cours', completed: 'Terminée', archived: 'Archivée' }
@@ -25,6 +26,7 @@ export { StatusBadge }
 
 export default function MissionsPage() {
   const { missions, loading, createMission } = useMissions()
+  const { members } = useMembers()
   const [showForm, setShowForm] = useState(false)
   const navigate = useNavigate()
 
@@ -76,6 +78,7 @@ export default function MissionsPage() {
 
       {showForm && (
         <MissionForm
+          members={members}
           onClose={() => setShowForm(false)}
           onSave={createMission}
         />

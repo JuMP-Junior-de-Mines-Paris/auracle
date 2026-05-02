@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Icon } from '../../../shared/lib/icons'
 import { useAuth } from '../../auth/hooks/useAuth'
+import { useMembers } from '../../members/hooks/useMembers'
 import { useMissionDetail } from '../hooks/useMissionDetail'
 import { StatusBadge } from './MissionsPage'
 import MissionForm from '../components/MissionForm'
@@ -29,6 +30,7 @@ export default function MissionDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { members } = useMembers()
   const { mission, team, milestones, meetings, loading, updateMission, addTeamMember, removeTeamMember, createMilestone, toggleMilestone, deleteMilestone, createMeeting, deleteMeeting } = useMissionDetail(id)
   const [activeTab, setActiveTab] = useState('overview')
   const [showEdit, setShowEdit] = useState(false)
@@ -125,6 +127,7 @@ export default function MissionDetailPage() {
       {showEdit && (
         <MissionForm
           mission={mission}
+          members={members}
           onClose={() => setShowEdit(false)}
           onSave={updateMission}
         />
