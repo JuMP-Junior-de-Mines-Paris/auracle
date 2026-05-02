@@ -4,15 +4,28 @@ import { Icon } from '../../../shared/lib/icons'
 import ContactStatusBadge from './ContactStatusBadge'
 import { useContactNotes } from '../hooks/useContactNotes'
 
-function Field({ label, value, icon }) {
+function Field({ label, value, icon, href }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ink-4)' }}>
         <Icon name={icon} size={11} /> {label}
       </div>
-      <div style={{ fontSize: 13, color: 'var(--ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {value || '—'}
-      </div>
+      {href && value ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ fontSize: 13, color: 'var(--ember)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: 'none' }}
+          onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
+          onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+        >
+          {value}
+        </a>
+      ) : (
+        <div style={{ fontSize: 13, color: 'var(--ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {value || '—'}
+        </div>
+      )}
     </div>
   )
 }
@@ -105,11 +118,11 @@ export default function ContactDrawer({ contact: c, lists, onClose, onAddToList,
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13 }}>
             <Field label="Email" value={c.email} icon="mail" />
             <Field label="Téléphone" value={c.telephone} icon="phone" />
-            <Field label="LinkedIn" value={c.linkedin} icon="link" />
+            <Field label="LinkedIn" value={c.linkedin} icon="link" href={c.linkedin} />
             <Field label="Localisation" value={[c.ville, c.pays].filter(Boolean).join(', ')} icon="globe" />
             <Field label="Diplôme" value={c.diplomes} icon="award" />
             <Field label="Promotion" value={c.annee_obtention_diplome} icon="calendar" />
-            {c.mpa_profile && <Field label="Profil MPA" value={c.mpa_profile} icon="link" />}
+            {c.mpa_profile && <Field label="Profil MPA" value={c.mpa_profile} icon="link" href={c.mpa_profile} />}
           </div>
 
           <div className="dotted-x" />
