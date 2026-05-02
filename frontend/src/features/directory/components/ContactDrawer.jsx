@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Icon } from '../../../shared/lib/icons'
 
 function Field({ label, value, icon }) {
@@ -46,7 +47,7 @@ export default function ContactDrawer({ contact: c, lists, onClose, onAddToList,
     setShowListPicker(false)
   }
 
-  return (
+  return createPortal(
     <div
       style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', justifyContent: 'flex-end', background: 'rgba(26,22,20,.18)' }}
       onClick={onClose}
@@ -158,6 +159,7 @@ export default function ContactDrawer({ contact: c, lists, onClose, onAddToList,
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
