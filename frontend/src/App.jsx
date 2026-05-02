@@ -6,6 +6,9 @@ import LoginPage from './features/auth/pages/LoginPage'
 import DirectoryPage from './features/directory/pages/DirectoryPage'
 import ListsPage from './features/directory/pages/ListsPage'
 import MembersPage from './features/members/pages/MembersPage'
+import MissionsPage from './features/missions/pages/MissionsPage'
+import MissionDetailPage from './features/missions/pages/MissionDetailPage'
+import DashboardPage from './features/dashboard/pages/DashboardPage'
 
 function ComingSoon({ title }) {
   return (
@@ -45,8 +48,9 @@ export default function App() {
           <Route path="/annuaire/listes" element={<Protected><ListsPage /></Protected>} />
           <Route path="/annuaire/listes/:id" element={<Protected><ListsPage /></Protected>} />
           <Route path="/membres" element={<Protected><MembersPage /></Protected>} />
-          <Route path="/missions" element={<Protected><ComingSoon title="Missions" /></Protected>} />
-          <Route path="/dashboard" element={<Protected><ComingSoon title="Tableau de bord" /></Protected>} />
+          <Route path="/missions" element={<Protected><MissionsPage /></Protected>} />
+          <Route path="/missions/:id" element={<Protected><MissionDetailPage /></Protected>} />
+          <Route path="/dashboard" element={<Protected><DashboardPage /></Protected>} />
           <Route path="/settings" element={<Protected><ComingSoon title="Paramètres" /></Protected>} />
         </Routes>
       </AuthProvider>
