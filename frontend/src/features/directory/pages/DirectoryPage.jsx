@@ -4,6 +4,7 @@ import { useContacts } from '../hooks/useContacts'
 import { useProspectingLists } from '../hooks/useProspectingLists'
 import ContactDrawer from '../components/ContactDrawer'
 import ContactForm from '../components/ContactForm'
+import ContactStatusBadge from '../components/ContactStatusBadge'
 
 function ContactAvatar({ contact, size = 28 }) {
   const initials = `${contact.prenom?.[0] ?? ''}${contact.nom?.[0] ?? ''}`.toUpperCase() || '?'
@@ -84,7 +85,12 @@ export default function DirectoryPage() {
   const [bulkLoading, setBulkLoading] = useState(false)
   const [toast, setToast] = useState(null)
 
-  const { contacts, total, loading, createContact } = useContacts({ page, pageSize: 50, query })
+  const { contacts, total, loading, createContact, updateStatus } = useContacts({ page, pageSize: 50, query })
+
+  async function handleStatusChange(id, status) {
+    await updateStatus(id, status)
+    setOpenContact(prev => prev?.id === id ? { ...prev, status: status ?? null } : prev)
+  }
   const { lists, createList, addContactToList, addContactsToList } = useProspectingLists()
 
   function handleSearch(val) {
@@ -263,6 +269,7 @@ export default function DirectoryPage() {
                 <th>Localisation</th>
                 <th>Diplôme · Année</th>
                 <th>Email</th>
+                <th>Statut</th>
               </tr>
             </thead>
             <tbody>
@@ -306,11 +313,14 @@ export default function DirectoryPage() {
                       <a href={`mailto:${c.email}`} style={{ color: 'var(--ember)' }} onClick={e => e.stopPropagation()}>{c.email}</a>
                     ) : '—'}
                   </td>
+                  <td onClick={e => e.stopPropagation()}>
+                    <ContactStatusBadge status={c.status} onChange={status => handleStatusChange(c.id, status)} />
+                  </td>
                 </tr>
               ))}
               {contacts.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink-3)' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink-3)' }}>
                     Aucun contact trouvé.
                   </td>
                 </tr>
@@ -363,6 +373,7 @@ export default function DirectoryPage() {
           onClose={() => setOpenContact(null)}
           onAddToList={addContactToList}
           onCreateList={createList}
+          onStatusChange={status => handleStatusChange(openContact.id, status)}
         />
       )}
 

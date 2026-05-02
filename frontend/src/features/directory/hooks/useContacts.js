@@ -53,6 +53,15 @@ export function useContacts({ page = 1, pageSize = 50, query = '' } = {}) {
     await fetchContacts()
   }
 
+  async function updateStatus(id, status) {
+    const { error: err } = await supabase
+      .from('contacts')
+      .update({ status: status ?? null })
+      .eq('id', id)
+    if (err) throw err
+    setContacts(prev => prev.map(c => c.id === id ? { ...c, status: status ?? null } : c))
+  }
+
   async function removeTag(contactId, tagName) {
     const { error: err } = await supabase.rpc('remove_tag_from_contact', {
       contact_id: contactId,
@@ -68,5 +77,5 @@ export function useContacts({ page = 1, pageSize = 50, query = '' } = {}) {
     )
   }
 
-  return { contacts, total, loading, error, createContact, updateTags, removeTag, refetch: fetchContacts }
+  return { contacts, total, loading, error, createContact, updateStatus, updateTags, removeTag, refetch: fetchContacts }
 }

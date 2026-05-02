@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '../../../shared/lib/icons'
+import ContactStatusBadge from './ContactStatusBadge'
 
 function Field({ label, value, icon }) {
   return (
@@ -32,7 +33,7 @@ function ContactAvatar({ contact, size = 48 }) {
   )
 }
 
-export default function ContactDrawer({ contact: c, lists, onClose, onAddToList, onCreateList }) {
+export default function ContactDrawer({ contact: c, lists, onClose, onAddToList, onCreateList, onStatusChange }) {
   const [showListPicker, setShowListPicker] = useState(false)
   const [newListName, setNewListName] = useState('')
   const [creating, setCreating] = useState(false)
@@ -62,7 +63,10 @@ export default function ContactDrawer({ contact: c, lists, onClose, onAddToList,
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <ContactAvatar contact={c} size={48} />
             <div style={{ lineHeight: 1.3 }}>
-              <div style={{ fontWeight: 500, fontSize: 15 }}>{c.prenom} {c.nom?.toUpperCase()}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                <div style={{ fontWeight: 500, fontSize: 15 }}>{c.prenom} {c.nom?.toUpperCase()}</div>
+                <ContactStatusBadge status={c.status} onChange={onStatusChange} />
+              </div>
               <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>{c.titre_poste}{c.entreprise_actuelle ? ` · ${c.entreprise_actuelle}` : ''}</div>
             </div>
           </div>
