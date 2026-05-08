@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"C:\\\\Users\\\\yopla\\\\Desktop\\\\JuMP\\\\web-app\\\\jump-oracle\" branch -a)",
+      "Bash(git -C \"C:\\\\Users\\\\yopla\\\\Desktop\\\\JuMP\\\\web-app\\\\jump-oracle\" log --oneline -5)",
+      "Bash(git -C \"C:\\\\Users\\\\yopla\\\\Desktop\\\\JuMP\\\\web-app\\\\jump-oracle\" worktree list)",
+      "Bash(npm install *)",
+      "Bash(npx vite *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(taskkill /f /im node.exe)",
+      "Bash(git reset *)",
+      "Bash(git commit -m ' *)",
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(python -c ' *)",
+      "Bash(npm test *)"
+    ]
+  }
+}
