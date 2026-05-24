@@ -1,9 +1,12 @@
 # app/routers/rag.py
 import sys
 import uuid
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
+# Imported to populate this module's namespace; _auth_dep resolves it via sys.modules at call time
+# so tests can patch it with patch("app.routers.rag.get_current_user").
 from app.auth import get_current_user
 from app.db import get_supabase_client
 from app.services.chunking import extract_chunks_from_ce_data
@@ -33,7 +36,7 @@ class IngestResponse(BaseModel):
 @router.post("/ingest-ce", response_model=IngestResponse)
 async def ingest_ce(
     request: IngestRequest,
-    user=Depends(_auth_dep),
+    _user=Depends(_auth_dep),
 ):
     supabase = get_supabase_client()
     ce_id_str = str(request.ce_id)
@@ -57,11 +60,14 @@ async def ingest_ce(
             detail="CE data contains no extractable text sections",
         )
 
-    # Delete stale chunks before re-indexing
-    supabase.table("ce_chunks").delete().eq("ce_id", ce_id_str).execute()
-
     texts = [c.text for c in chunks]
     embeddings = embed_texts(texts)
+
+    if len(embeddings) != len(chunks):
+        raise HTTPException(status_code=502, detail="Embedding service returned unexpected result count")
+
+    # Delete stale chunks only after embeddings succeed
+    supabase.table("ce_chunks").delete().eq("ce_id", ce_id_str).execute()
 
     rows = [
         {
@@ -76,7 +82,7 @@ async def ingest_ce(
     supabase.table("ce_chunks").insert(rows).execute()
 
     supabase.table("ce_documents").update(
-        {"indexed_at": "now()", "status": "final"}
+        {"indexed_at": datetime.now(timezone.utc).isoformat(), "status": "final"}
     ).eq("id", ce_id_str).execute()
 
     return IngestResponse(chunks_created=len(rows))
