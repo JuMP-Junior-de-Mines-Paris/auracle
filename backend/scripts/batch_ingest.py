@@ -20,7 +20,7 @@ def ingest_file(supabase, path: Path) -> int:
     """Ingest one DOCX. Returns number of chunks created."""
     ref_ce = path.stem  # use filename (without .docx) as the ref_CE
 
-    # Upsert the CE document record (idempotent on ref_ce)
+    # ce_data is left empty here; chunks are the authoritative RAG content for batch-ingested files
     result = (
         supabase.table("ce_documents")
         .upsert({"ref_ce": ref_ce, "ce_data": {}, "status": "final"}, on_conflict="ref_ce")
@@ -31,7 +31,9 @@ def ingest_file(supabase, path: Path) -> int:
     ce_id: str = result.data[0]["id"]
 
     # Clear stale chunks
-    supabase.table("ce_chunks").delete().eq("ce_id", ce_id).execute()
+    del_resp = supabase.table("ce_chunks").delete().eq("ce_id", ce_id).execute()
+    if hasattr(del_resp, "error") and del_resp.error:
+        raise RuntimeError(f"Failed to delete stale chunks for {path.name}: {del_resp.error}")
 
     chunks = extract_chunks_from_docx(path)
     if not chunks:
@@ -60,9 +62,11 @@ def ingest_file(supabase, path: Path) -> int:
     if not ins_resp.data:
         raise RuntimeError(f"{path.name}: chunk insert failed: {ins_resp}")
 
-    supabase.table("ce_documents").update(
+    upd_resp = supabase.table("ce_documents").update(
         {"indexed_at": datetime.now(timezone.utc).isoformat()}
     ).eq("id", ce_id).execute()
+    if hasattr(upd_resp, "error") and upd_resp.error:
+        raise RuntimeError(f"Failed to update indexed_at for {path.name}: {upd_resp.error}")
 
     return len(ins_resp.data)
 
@@ -85,13 +89,21 @@ def main() -> None:
     supabase = create_client(settings.supabase_url, settings.supabase_service_role_key)
     total_chunks = 0
 
+    errors: list[str] = []
     for path in docx_files:
         print(f"Ingesting {path.name}...", end=" ", flush=True)
-        count = ingest_file(supabase, path)
-        print(f"{count} chunks")
-        total_chunks += count
+        try:
+            count = ingest_file(supabase, path)
+            print(f"{count} chunks")
+            total_chunks += count
+        except Exception as exc:
+            print(f"ERROR: {exc}")
+            errors.append(path.name)
 
     print(f"\nDone — {total_chunks} total chunks across {len(docx_files)} CE files.")
+    if errors:
+        print(f"Failed files ({len(errors)}): {', '.join(errors)}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
