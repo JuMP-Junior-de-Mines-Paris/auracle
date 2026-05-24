@@ -10,8 +10,8 @@ Extracts structured data from the PDF using Claude, then writes to:
   - ce_chunks          (RAG vectors, embedded via Voyage AI)
 
 Usage (from backend/ directory):
-    python -m scripts.ingest_ce_pdf /path/to/ce.pdf
-    python -m scripts.ingest_ce_pdf /path/to/ce.pdf --ref-ce CE-2024-001
+    python -m scripts.ingest_ce_pdf /path/to/ce.pdf --created-by <your-profile-uuid>
+    python -m scripts.ingest_ce_pdf /path/to/ce.pdf --ref-ce CE-2024-001 --created-by <your-profile-uuid>
 
 Idempotent on ref_ce: re-running with the same PDF updates the existing records.
 """
@@ -94,24 +94,33 @@ def extract_text_from_pdf(path: Path) -> str:
 def extract_structured_data(text: str) -> dict:
     """Send PDF text to Claude Haiku and get back a structured dict."""
     client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+    if len(text) > 12000:
+        print(f"  [warn] PDF text is {len(text)} chars — truncating to 12,000 for Claude extraction. Some fields (phases, team) may be missed.")
     message = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=4096,
         system=_SYSTEM,
-        messages=[{"role": "user", "content": _USER_TEMPLATE.format(text=text[:12000])}],
+        messages=[{"role": "user", "content": _USER_TEMPLATE.format(text=text[:40000])}],
     )
     raw = message.content[0].text.strip()
     # Strip markdown code fences if Claude wrapped the JSON
     if raw.startswith("```"):
-        raw = raw.split("```")[1]
+        parts = raw.split("```")
+        raw = parts[1] if len(parts) > 1 else raw
+        raw = raw.lstrip()
         if raw.startswith("json"):
-            raw = raw[4:]
-    return json.loads(raw)
+            raw = raw[4:].lstrip()
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(
+            f"Claude returned non-JSON output. First 500 chars:\n{raw[:500]}"
+        ) from exc
 
 
 # ── DB writes ──────────────────────────────────────────────────────────────────
 
-def ingest(pdf_path: Path, ref_ce_override: str | None = None) -> None:
+def ingest(pdf_path: Path, ref_ce_override: str | None = None, created_by: str = "") -> None:
     supabase = create_client(settings.supabase_url, settings.supabase_service_role_key)
 
     # 1. Extract PDF text
@@ -139,24 +148,51 @@ def ingest(pdf_path: Path, ref_ce_override: str | None = None) -> None:
     if missing:
         print(f"  [warn] Could not extract: {', '.join(missing)} — these will be null/empty")
 
-    # 3. Upsert mission (idempotent via ref_ce stored in ce_documents)
+    # 3. Check if this ref_ce already exists (idempotent re-run)
     print("Writing to database...")
-    mission_row = {
-        "title": data.get("title") or ref_ce,
-        "description": data.get("description"),
-        "client_name": data.get("client_name"),
-        "client_contact_name": data.get("client_contact_name"),
-        "client_contact_email": data.get("client_contact_email"),
-        "start_date": data.get("start_date"),
-        "end_date": data.get("end_date"),
-        "budget": data.get("budget"),
-        "status": "active",
-    }
-    mission_resp = supabase.table("missions").insert(mission_row).execute()
-    if not mission_resp.data:
-        raise RuntimeError(f"Failed to insert mission: {mission_resp}")
-    mission_id = mission_resp.data[0]["id"]
-    print(f"  mission created: {mission_id}")
+    existing = (
+        supabase.table("ce_documents")
+        .select("id, mission_id")
+        .eq("ref_ce", ref_ce)
+        .execute()
+    )
+    if existing.data:
+        ce_id = existing.data[0]["id"]
+        mission_id = existing.data[0]["mission_id"]
+        print(f"  ref_ce '{ref_ce}' already exists — updating existing records.")
+        # Update mission fields
+        supabase.table("missions").update({
+            "title": data.get("title") or ref_ce,
+            "description": data.get("description"),
+            "client_name": data.get("client_name"),
+            "client_contact_name": data.get("client_contact_name"),
+            "client_contact_email": data.get("client_contact_email"),
+            "start_date": data.get("start_date"),
+            "end_date": data.get("end_date"),
+            "budget": float(data["budget"]) if data.get("budget") else None,
+        }).eq("id", mission_id).execute()
+        # Clear stale team and milestones before re-inserting
+        supabase.table("mission_team").delete().eq("mission_id", mission_id).execute()
+        supabase.table("milestones").delete().eq("mission_id", mission_id).execute()
+    else:
+        # Insert new mission
+        mission_row = {
+            "title": data.get("title") or ref_ce,
+            "description": data.get("description"),
+            "client_name": data.get("client_name"),
+            "client_contact_name": data.get("client_contact_name"),
+            "client_contact_email": data.get("client_contact_email"),
+            "start_date": data.get("start_date"),
+            "end_date": data.get("end_date"),
+            "budget": float(data["budget"]) if data.get("budget") else None,
+            "status": "active",
+            "created_by": created_by,
+        }
+        mission_resp = supabase.table("missions").insert(mission_row).execute()
+        if not mission_resp.data:
+            raise RuntimeError(f"Failed to insert mission: {mission_resp}")
+        mission_id = mission_resp.data[0]["id"]
+        print(f"  mission created: {mission_id}")
 
     # 4. Insert mission_team rows
     team = data.get("team") or []
@@ -171,7 +207,9 @@ def ingest(pdf_path: Path, ref_ce_override: str | None = None) -> None:
             if member.get("prenom") or member.get("nom")
         ]
         if team_rows:
-            supabase.table("mission_team").insert(team_rows).execute()
+            team_resp = supabase.table("mission_team").insert(team_rows).execute()
+            if not team_resp.data:
+                print(f"  [warn] mission_team insert may have failed: {team_resp}")
             print(f"  {len(team_rows)} team members inserted")
 
     # 5. Insert milestones (one per phase)
@@ -185,7 +223,9 @@ def ingest(pdf_path: Path, ref_ce_override: str | None = None) -> None:
             }
             for i, phase in enumerate(phases)
         ]
-        supabase.table("milestones").insert(milestone_rows).execute()
+        ms_resp = supabase.table("milestones").insert(milestone_rows).execute()
+        if not ms_resp.data:
+            print(f"  [warn] milestones insert may have failed: {ms_resp}")
         print(f"  {len(milestone_rows)} milestones inserted")
 
     # 6. Upsert ce_documents
@@ -260,6 +300,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Ingest a CE PDF into the JuMP Oracle database.")
     parser.add_argument("pdf", type=Path, help="Path to the CE PDF file")
     parser.add_argument("--ref-ce", dest="ref_ce", default=None, help="Override the CE reference (default: extracted by Claude or filename stem)")
+    parser.add_argument(
+        "--created-by",
+        dest="created_by",
+        required=True,
+        help="UUID of the JuMP member creating this mission (your profile UUID from Supabase)",
+    )
     args = parser.parse_args()
 
     if not args.pdf.exists():
@@ -269,7 +315,7 @@ def main() -> None:
         print(f"ERROR: Expected a .pdf file, got: {args.pdf.suffix}")
         sys.exit(1)
 
-    ingest(args.pdf, ref_ce_override=args.ref_ce)
+    ingest(args.pdf, ref_ce_override=args.ref_ce, created_by=args.created_by)
 
 
 if __name__ == "__main__":
