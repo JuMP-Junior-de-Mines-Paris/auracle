@@ -1,10 +1,9 @@
 # scripts/seed_references.py
 """
 Seed references_library with JuMP's standard past-reference bullets.
-Run once from the backend/ directory:
+Idempotent — safe to re-run. From the backend/ directory:
     python -m scripts.seed_references
 """
-from datetime import datetime, timezone
 from supabase import create_client
 from app.config import settings
 from app.services.embedding import embed_texts
@@ -53,9 +52,11 @@ def main() -> None:
     supabase = create_client(settings.supabase_url, settings.supabase_service_role_key)
 
     # Clear existing rows so re-running is idempotent
-    supabase.table("references_library").delete().neq(
+    del_resp = supabase.table("references_library").delete().neq(
         "id", "00000000-0000-0000-0000-000000000000"
     ).execute()
+    if not del_resp.data and hasattr(del_resp, "error") and del_resp.error:
+        raise RuntimeError(f"Delete failed: {del_resp.error}")
 
     texts = [r[0] for r in REFERENCES]
     embeddings = embed_texts(texts)
@@ -67,8 +68,10 @@ def main() -> None:
         {"text": text, "domain": domain, "embedding": embedding}
         for (text, domain), embedding in zip(REFERENCES, embeddings)
     ]
-    supabase.table("references_library").insert(rows).execute()
-    print(f"Seeded {len(rows)} references into references_library.")
+    ins_resp = supabase.table("references_library").insert(rows).execute()
+    if not ins_resp.data:
+        raise RuntimeError(f"Insert failed: {ins_resp}")
+    print(f"Seeded {len(ins_resp.data)} references into references_library.")
 
 
 if __name__ == "__main__":
