@@ -339,7 +339,7 @@ export default function ListsPage() {
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <h2 className="font-serif" style={{ fontSize: 30, lineHeight: 1.05 }}>{activeList.name}</h2>
+                    <h2 className="font-display" style={{ fontSize: 30, lineHeight: 1.05 }}>{activeList.name}</h2>
                     {!isOwner && activeList.sharedBy && (
                       <span style={{ fontSize: 11, background: 'var(--ember-soft)', color: 'var(--ember-2)', border: '1px solid #c2d9ef', borderRadius: 99, padding: '2px 9px' }}>
                         Partagé par {activeList.sharedBy.prenom} {activeList.sharedBy.nom}

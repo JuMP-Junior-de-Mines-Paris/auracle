@@ -43,7 +43,7 @@
 }
 
 @layer components {
-  .font-serif { font-family: 'Instrument Serif', serif; font-weight: 400; letter-spacing: -0.01em; }
+  .font-display { font-family: 'DM Sans', sans-serif; font-weight: 400; letter-spacing: -0.02em; }
   .font-mono  { font-family: 'Geist Mono', ui-monospace, monospace; }
 
   .paper-bg {
