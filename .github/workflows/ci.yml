@@ -6,6 +6,24 @@ on:
   pull_request:
 
 jobs:
+  migrations:
+    name: Migrations — analyse et cohérence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pglast
+      # Analyse par le vrai parseur PostgreSQL, puis rejeu des migrations
+      # sur un modèle du schéma : attrape les références à une table ou une
+      # colonne qui n'existe pas encore à cet instant.
+      - run: python supabase/check_migrations.py
+      # Les blocs à coller doivent refléter les migrations.
+      - run: |
+          python supabase/bundle.py
+          git diff --exit-code supabase/bundles/             || (echo "::error::supabase/bundles est périmé — relancez python supabase/bundle.py" && exit 1)
+
   frontend:
     name: Frontend — lint, tests, build
     runs-on: ubuntu-latest
