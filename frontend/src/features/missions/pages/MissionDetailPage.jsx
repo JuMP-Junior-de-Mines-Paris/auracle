@@ -11,6 +11,7 @@ import MilestoneList from '../components/MilestoneList'
 import MeetingLog from '../components/MeetingLog'
 import TeamPanel from '../components/TeamPanel'
 import { TaskList } from '../../tasks/pages/TasksPage'
+import NotesPanel from '../../../shared/components/NotesPanel'
 
 const TABS = [
   { id: 'overview', label: 'Aperçu' },
@@ -18,6 +19,7 @@ const TABS = [
   { id: 'milestones', label: 'Jalons' },
   { id: 'tasks', label: 'Tâches' },
   { id: 'meetings', label: 'Réunions' },
+  { id: 'notes', label: 'Notes' },
 ]
 
 function Field({ label, value }) {
@@ -134,6 +136,12 @@ export default function MissionDetailPage() {
           onCreate={createMeeting}
           canManage={canEdit}
         />
+      )}
+
+      {activeTab === 'notes' && (
+        <div style={{ maxWidth: 620 }}>
+          <NotesPanel entityType="mission" entityId={id} placeholder="Compte rendu, point de vigilance, décision…" />
+        </div>
       )}
 
       {showEdit && (
