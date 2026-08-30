@@ -7,7 +7,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 # Imported to populate this module's namespace; _auth_dep resolves it via sys.modules at call time
 # so tests can patch it with patch("app.routers.rag.get_current_user").
-from app.auth import get_current_user
+from app.auth import get_current_user, get_user_permissions
 from app.db import get_supabase_client
 from app.services.chunking import extract_chunks_from_ce_data
 from app.services.embedding import embed_texts
@@ -17,12 +17,28 @@ router = APIRouter()
 _security = HTTPBearer()
 
 
+INGEST_PERMS = ("ce.write",)
+
+
 async def _auth_dep(
     credentials: HTTPAuthorizationCredentials = Depends(_security),
 ):
-    """Delegate to the module-level get_current_user (patchable in tests)."""
-    fn = sys.modules[__name__].get_current_user
-    return await fn(credentials)
+    """Authenticate, then check the caller may write conventions d'étude.
+
+    Both lookups resolve through sys.modules so tests can patch them.
+    The check matters here: every query below runs on the service-role key,
+    which bypasses RLS entirely — a valid token alone is not authorisation.
+    """
+    mod = sys.modules[__name__]
+    user = await mod.get_current_user(credentials)
+
+    held = mod.get_user_permissions(str(user.id))
+    if "admin.full" not in held and not held.intersection(INGEST_PERMS):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Permission requise : {' ou '.join(INGEST_PERMS)}",
+        )
+    return user
 
 
 class IngestRequest(BaseModel):
