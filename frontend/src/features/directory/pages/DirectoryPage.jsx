@@ -8,13 +8,16 @@ import { useProspectingLists } from '../hooks/useProspectingLists'
 import ContactDrawer from '../components/ContactDrawer'
 import ContactForm from '../components/ContactForm'
 import ContactStatusBadge from '../components/ContactStatusBadge'
+import ImportCsvModal from '../components/ImportCsvModal'
 
+// Les codes suivent prospect_statuses (013). On n'affiche pas les neuf
+// statuts en cartes : seuls les jalons que l'équipe regarde au quotidien.
 const KPI_CONFIG = [
-  { key: 'total',      label: 'Total',        color: 'var(--ink)', statusValue: undefined },
-  { key: 'aContacter', label: 'À contacter',  color: '#6b7280',    statusValue: 'à contacter' },
-  { key: 'contacte',   label: 'Contactés',    color: '#1d4ed8',    statusValue: 'contacté' },
-  { key: 'repondu',    label: 'Répondu',      color: '#d97706',    statusValue: 'répondu' },
-  { key: 'travaille',  label: 'Travaillés',   color: '#15803d',    statusValue: 'travaillé' },
+  { key: '__total__',     label: 'Total',         color: 'var(--ink)', statusValue: undefined },
+  { key: 'a_contacter',   label: 'À contacter',   color: '#6b7280',    statusValue: 'a_contacter' },
+  { key: 'contacte',      label: 'Contactés',     color: '#1d4ed8',    statusValue: 'contacte' },
+  { key: 'en_discussion', label: 'En discussion', color: '#b45309',    statusValue: 'en_discussion' },
+  { key: 'converti',      label: 'Convertis',     color: '#15803d',    statusValue: 'converti' },
 ]
 
 function StatCard({ count, label, color, active, onClick }) {
@@ -110,6 +113,7 @@ export default function DirectoryPage() {
   const [openContact, setOpenContact] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [editingContact, setEditingContact] = useState(null)
+  const [showImport, setShowImport] = useState(false)
 
   // Bulk action state
   const [showListDropdown, setShowListDropdown] = useState(false)
@@ -118,7 +122,7 @@ export default function DirectoryPage() {
   const [bulkLoading, setBulkLoading] = useState(false)
   const [toast, setToast] = useState(null)
 
-  const { contacts, total, loading, createContact, updateContact, updateStatus } = useContacts({ page, pageSize: 50, query, statusFilter })
+  const { contacts, total, loading, createContact, updateContact, updateStatus, refetch } = useContacts({ page, pageSize: 50, query, statusFilter })
   const { stats, refetch: refetchStats } = useContactStats()
   const { can } = usePermissions()
   const canWrite = can('contacts.write')
@@ -236,7 +240,7 @@ export default function DirectoryPage() {
         {KPI_CONFIG.map(k => (
           <StatCard
             key={k.key}
-            count={stats[k.key]}
+            count={stats[k.key] ?? 0}
             label={k.label}
             color={k.color}
             active={statusFilter === k.statusValue && k.statusValue !== undefined}
@@ -259,7 +263,7 @@ export default function DirectoryPage() {
             />
           </div>
           <Can perm="contacts.import">
-            <button className="btn-ghost flex items-center gap-1.5">
+            <button className="btn-ghost flex items-center gap-1.5" onClick={() => setShowImport(true)}>
               <Icon name="upload" size={14} /> Importer CSV
             </button>
           </Can>
@@ -454,6 +458,13 @@ export default function DirectoryPage() {
           onCreateList={createList}
           onStatusChange={canWrite ? status => handleStatusChange(openContact.id, status) : undefined}
           onEdit={canWrite ? () => { setEditingContact(openContact); setOpenContact(null) } : undefined}
+        />
+      )}
+
+      {showImport && (
+        <ImportCsvModal
+          onClose={() => setShowImport(false)}
+          onDone={() => { refetch(); refetchStats() }}
         />
       )}
 
