@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Icon } from '../../../shared/lib/icons'
 
-export default function MilestoneList({ milestones, onToggle, onDelete, onCreate }) {
+export default function MilestoneList({ milestones, onToggle, onDelete, onCreate, canManage = true }) {
   const [title, setTitle] = useState('')
   const [dueDate, setDueDate] = useState('')
   const today = new Date().toISOString().split('T')[0]
@@ -26,8 +26,9 @@ export default function MilestoneList({ milestones, onToggle, onDelete, onCreate
             <input
               type="checkbox"
               checked={ms.done}
+              disabled={!canManage}
               onChange={e => onToggle(ms.id, e.target.checked)}
-              style={{ width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }}
+              style={{ width: 16, height: 16, cursor: canManage ? 'pointer' : 'default', flexShrink: 0 }}
             />
             <span style={{ flex: 1, fontSize: 14, color: ms.done ? 'var(--ink-4)' : 'var(--ink)', textDecoration: ms.done ? 'line-through' : 'none' }}>
               {ms.title}
@@ -38,16 +39,19 @@ export default function MilestoneList({ milestones, onToggle, onDelete, onCreate
                 {overdue && ' ⚠'}
               </span>
             )}
-            <button
-              onClick={() => onDelete(ms.id)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', padding: 4, flexShrink: 0 }}
-            >
-              <Icon name="trash" size={13} />
-            </button>
+            {canManage && (
+              <button
+                onClick={() => onDelete(ms.id)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', padding: 4, flexShrink: 0 }}
+              >
+                <Icon name="trash" size={13} />
+              </button>
+            )}
           </div>
         )
       })}
 
+      {canManage && (
       <form onSubmit={handleAdd} style={{ display: 'flex', gap: 8, marginTop: 4 }}>
         <input
           className="field"
@@ -67,6 +71,7 @@ export default function MilestoneList({ milestones, onToggle, onDelete, onCreate
           <Icon name="plus" size={13} /> Ajouter
         </button>
       </form>
+      )}
     </div>
   )
 }

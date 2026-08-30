@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../../shared/lib/icons'
+import Can from '../../../shared/components/Can'
 import { useMissions } from '../hooks/useMissions'
 import { useMembers } from '../../members/hooks/useMembers'
 import MissionForm from '../components/MissionForm'
@@ -25,7 +26,7 @@ function StatusBadge({ status }) {
 export { StatusBadge }
 
 export default function MissionsPage() {
-  const { missions, loading, createMission } = useMissions()
+  const { missions, loading, error, createMission } = useMissions()
   const { members, loading: loadingMembers } = useMembers()
   const [showForm, setShowForm] = useState(false)
   const navigate = useNavigate()
@@ -34,13 +35,19 @@ export default function MissionsPage() {
     <div className="px-8 py-6 fade-up">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <h1 className="page-title">Missions</h1>
-        <button className="btn-ember flex items-center gap-1.5" onClick={() => setShowForm(true)}>
-          <Icon name="plus" size={14} /> Nouvelle mission
-        </button>
+        <Can perm="missions.create">
+          <button className="btn-ember flex items-center gap-1.5" onClick={() => setShowForm(true)}>
+            <Icon name="plus" size={14} /> Nouvelle mission
+          </button>
+        </Can>
       </div>
 
       {loading ? (
         <div style={{ color: 'var(--ink-3)', fontSize: 14 }}>Chargement…</div>
+      ) : error ? (
+        <div className="card" style={{ padding: '40px', textAlign: 'center', color: 'var(--bad)', fontSize: 14 }}>
+          {error}
+        </div>
       ) : missions.length === 0 ? (
         <div className="card" style={{ padding: '60px 40px', textAlign: 'center', color: 'var(--ink-3)' }}>
           Aucune mission pour le moment.

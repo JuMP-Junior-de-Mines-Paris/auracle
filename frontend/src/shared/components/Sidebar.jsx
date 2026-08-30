@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { Icon } from '../../shared/lib/icons'
+import { roleMeta } from '../../shared/lib/roles'
 import { useAuth } from '../../features/auth/hooks/useAuth'
 
 const NAV_SECTIONS = [
@@ -104,8 +105,8 @@ export default function Sidebar() {
               <span style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {user?.email}
               </span>
-              <span style={{ fontSize: 11, color: 'var(--ink-3)', textTransform: 'capitalize' }}>
-                {role?.replace('_', ' ')}
+              <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>
+                {roleMeta(role).short}
               </span>
             </div>
             <button

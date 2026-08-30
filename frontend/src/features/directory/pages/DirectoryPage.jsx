@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Icon } from '../../../shared/lib/icons'
+import Can from '../../../shared/components/Can'
+import { usePermissions } from '../../auth/hooks/usePermissions'
 import { useContacts } from '../hooks/useContacts'
 import { useContactStats } from '../hooks/useContactStats'
 import { useProspectingLists } from '../hooks/useProspectingLists'
@@ -118,6 +120,8 @@ export default function DirectoryPage() {
 
   const { contacts, total, loading, createContact, updateContact, updateStatus } = useContacts({ page, pageSize: 50, query, statusFilter })
   const { stats, refetch: refetchStats } = useContactStats()
+  const { can } = usePermissions()
+  const canWrite = can('contacts.write')
 
   function handleKpiClick(statusValue) {
     const next = statusFilter === statusValue ? undefined : statusValue
@@ -220,9 +224,11 @@ export default function DirectoryPage() {
             {total.toLocaleString('fr-FR')} contacts
           </p>
         </div>
-        <button className="btn-ember flex items-center gap-2" onClick={() => setShowForm(true)}>
-          <Icon name="plus" size={14} /> Nouveau contact
-        </button>
+        <Can perm="contacts.write">
+          <button className="btn-ember flex items-center gap-2" onClick={() => setShowForm(true)}>
+            <Icon name="plus" size={14} /> Nouveau contact
+          </button>
+        </Can>
       </div>
 
       {/* KPI row */}
@@ -252,9 +258,11 @@ export default function DirectoryPage() {
               onChange={e => handleSearch(e.target.value)}
             />
           </div>
-          <button className="btn-ghost flex items-center gap-1.5">
-            <Icon name="upload" size={14} /> Importer CSV
-          </button>
+          <Can perm="contacts.import">
+            <button className="btn-ghost flex items-center gap-1.5">
+              <Icon name="upload" size={14} /> Importer CSV
+            </button>
+          </Can>
         </div>
 
         {/* Selection bar */}
@@ -385,7 +393,7 @@ export default function DirectoryPage() {
                     ) : '—'}
                   </td>
                   <td onClick={e => e.stopPropagation()}>
-                    <ContactStatusBadge status={c.status} onChange={status => handleStatusChange(c.id, status)} />
+                    <ContactStatusBadge status={c.status} onChange={canWrite ? status => handleStatusChange(c.id, status) : undefined} />
                   </td>
                 </tr>
               ))}
@@ -444,8 +452,8 @@ export default function DirectoryPage() {
           onClose={() => setOpenContact(null)}
           onAddToList={addContactToList}
           onCreateList={createList}
-          onStatusChange={status => handleStatusChange(openContact.id, status)}
-          onEdit={() => { setEditingContact(openContact); setOpenContact(null) }}
+          onStatusChange={canWrite ? status => handleStatusChange(openContact.id, status) : undefined}
+          onEdit={canWrite ? () => { setEditingContact(openContact); setOpenContact(null) } : undefined}
         />
       )}
 

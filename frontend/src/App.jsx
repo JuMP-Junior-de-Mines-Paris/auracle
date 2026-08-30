@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './features/auth/hooks/useAuth'
 import ProtectedRoute from './shared/components/ProtectedRoute'
+import ErrorBoundary from './shared/components/ErrorBoundary'
 import Layout from './shared/components/Layout'
 import LoginPage from './features/auth/pages/LoginPage'
 import DirectoryPage from './features/directory/pages/DirectoryPage'
@@ -33,7 +34,9 @@ function ComingSoon({ title }) {
 function Protected({ children }) {
   return (
     <ProtectedRoute>
-      <Layout>{children}</Layout>
+      <Layout>
+        <ErrorBoundary>{children}</ErrorBoundary>
+      </Layout>
     </ProtectedRoute>
   )
 }

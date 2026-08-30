@@ -1,20 +1,9 @@
 import { useMembers } from '../hooks/useMembers'
-
-const ROLE_LABELS = {
-  admin:           'Admin',
-  project_manager: 'Chef de projet',
-  consultant:      'Consultant',
-}
-
-const ROLE_STYLES = {
-  admin:           { background: '#dbeafe', color: '#1d4ed8' },
-  project_manager: { background: '#dcfce7', color: '#15803d' },
-  consultant:      { background: '#f3f4f6', color: '#374151' },
-}
+import { roleMeta, groupMembers } from '../../../shared/lib/roles'
 
 function MemberAvatar({ member }) {
   const initials = `${member.prenom?.[0] ?? ''}${member.nom?.[0] ?? ''}`.toUpperCase() || '?'
-  const color = member.role === 'admin' ? '#015d9c' : 'var(--ink-3)'
+  const color = roleMeta(member.role).fg
   return (
     <span className="avatar" style={{ width: 32, height: 32, background: color + '1a', color, fontSize: 13, border: `1px solid ${color}33`, flexShrink: 0 }}>
       {initials}
@@ -52,8 +41,22 @@ export default function MembersPage() {
               </tr>
             </thead>
             <tbody>
-              {members.map(m => {
-                const roleStyle = ROLE_STYLES[m.role] ?? ROLE_STYLES.consultant
+              {groupMembers(members).flatMap(group => [
+                <tr key={`g-${group.groupe}`}>
+                  <td
+                    colSpan={4}
+                    className="font-mono"
+                    style={{
+                      background: 'var(--paper-2)', color: 'var(--ink-3)',
+                      fontSize: 10.5, letterSpacing: '.09em', textTransform: 'uppercase',
+                      padding: '7px 14px',
+                    }}
+                  >
+                    {group.label} · {group.members.length}
+                  </td>
+                </tr>,
+                ...group.members.map(m => {
+                const role = roleMeta(m.role)
                 return (
                   <tr key={m.id}>
                     <td><MemberAvatar member={m} /></td>
@@ -66,13 +69,17 @@ export default function MembersPage() {
                         : <span style={{ color: 'var(--ink-4)' }}>—</span>}
                     </td>
                     <td>
-                      <span style={{ ...roleStyle, borderRadius: 99, padding: '3px 10px', fontSize: 12, fontWeight: 500 }}>
-                        {ROLE_LABELS[m.role] ?? m.role}
+                      <span
+                        title={role.label}
+                        style={{ background: role.bg, color: role.fg, borderRadius: 99, padding: '3px 10px', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap' }}
+                      >
+                        {role.short}
                       </span>
                     </td>
                   </tr>
                 )
-              })}
+                }),
+              ])}
               {members.length === 0 && (
                 <tr>
                   <td colSpan={4} style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink-3)' }}>
