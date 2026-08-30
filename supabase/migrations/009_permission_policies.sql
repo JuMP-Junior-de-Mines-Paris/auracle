@@ -206,6 +206,8 @@ language plpgsql
 as $$
 begin
   if new.status = 'final' and old.status is distinct from 'final'
+     -- Même exception qu'au trigger de 007 : pas de JWT = accès SQL direct.
+     and auth.uid() is not null
      and coalesce(auth.role(), '') <> 'service_role'
      and not public.has_perm('ce.finalize')
   then

@@ -80,6 +80,10 @@ language plpgsql
 as $$
 begin
   if new.role is distinct from old.role
+     -- auth.uid() nul = accès SQL direct (SQL Editor, psql, migration). Ce
+     -- contexte est déjà privilégié ; garder le verrou n'y protège de rien
+     -- et bloquerait les migrations de données qui touchent à `role`.
+     and auth.uid() is not null
      and coalesce(auth.role(), '') <> 'service_role'
      and not public.is_admin()
   then

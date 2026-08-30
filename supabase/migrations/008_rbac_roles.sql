@@ -161,8 +161,11 @@ on conflict do nothing;
 --    continue de lire `role` comme une chaîne, rien ne casse.
 -- ─────────────────────────────────────────────────────────────────────
 
--- 007 avait créé set_member_role(uuid, user_role) ; la signature change.
+-- Deux fonctions de 007 dépendent du type user_role et empêcheraient de le
+-- supprimer plus bas ; on les retire avant. current_user_role() est
+-- recréée en text à la section 5, set_member_role() à la section 6.
 drop function if exists public.set_member_role(uuid, user_role);
+drop function if exists public.current_user_role();
 
 alter table public.profiles alter column role drop default;
 alter table public.profiles alter column role type text using role::text;
@@ -222,6 +225,20 @@ set search_path = public, pg_temp
 as $$
   select public.has_perm('admin.full', uid);
 $$;
+
+-- Recréée en text : 007 la renvoyait en user_role, type qui n'existe plus.
+create or replace function public.current_user_role()
+returns text
+language sql
+security definer
+stable
+set search_path = public, pg_temp
+as $$
+  select role from public.profiles where id = auth.uid();
+$$;
+
+revoke all     on function public.current_user_role() from public, anon;
+grant  execute on function public.current_user_role() to authenticated;
 
 -- Toutes les permissions du membre courant, en un appel — alimente le
 -- hook usePermissions() côté React.
