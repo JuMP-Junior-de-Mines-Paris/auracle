@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Icon } from '../../../shared/lib/icons'
 import ContactStatusBadge from './ContactStatusBadge'
 import { useContactNotes } from '../hooks/useContactNotes'
+import InteractionPanel from './InteractionPanel'
 
 function Field({ label, value, icon, href }) {
   return (
@@ -149,6 +150,10 @@ export default function ContactDrawer({ contact: c, lists, onClose, onAddToList,
               <Icon name="book" size={14} /> Voir le profil MPA
             </a>
           )}
+
+          <InteractionPanel contactId={c.id} lists={lists} />
+
+          <div className="dotted-x" />
 
           {/* Notes */}
           <div>

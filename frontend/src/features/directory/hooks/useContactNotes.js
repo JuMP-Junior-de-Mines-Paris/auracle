@@ -9,9 +9,10 @@ export function useContactNotes(contactId) {
     if (!contactId) return
     setLoading(true)
     supabase
-      .from('contact_notes')
+      .from('notes')
       .select('*, author:profiles!created_by(prenom, nom, email)')
-      .eq('contact_id', contactId)
+      .eq('entity_type', 'contact')
+      .eq('entity_id', contactId)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
         setNotes(data ?? [])
@@ -22,8 +23,8 @@ export function useContactNotes(contactId) {
   async function addNote(content) {
     const { data: { user } } = await supabase.auth.getUser()
     const { data, error } = await supabase
-      .from('contact_notes')
-      .insert({ contact_id: contactId, content, created_by: user.id })
+      .from('notes')
+      .insert({ entity_type: 'contact', entity_id: contactId, content, created_by: user.id })
       .select('*, author:profiles!created_by(prenom, nom, email)')
       .single()
     if (error) throw error
@@ -32,7 +33,7 @@ export function useContactNotes(contactId) {
   }
 
   async function deleteNote(id) {
-    const { error } = await supabase.from('contact_notes').delete().eq('id', id)
+    const { error } = await supabase.from('notes').delete().eq('id', id)
     if (error) throw error
     setNotes(prev => prev.filter(n => n.id !== id))
   }

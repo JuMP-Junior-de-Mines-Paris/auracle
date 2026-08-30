@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Icon } from '../../shared/lib/icons'
 import { roleMeta } from '../../shared/lib/roles'
 import { useAuth } from '../../features/auth/hooks/useAuth'
+import { usePermissions } from '../../features/auth/hooks/usePermissions'
 
 const NAV_SECTIONS = [
   {
@@ -11,6 +12,7 @@ const NAV_SECTIONS = [
       { to: '/dashboard',    icon: 'home',      label: 'Tableau de bord' },
       { to: '/missions',     icon: 'briefcase', label: 'Missions' },
       { to: '/mes-missions', icon: 'award',     label: 'Mes missions' },
+      { to: '/taches',       icon: 'check',     label: 'Tâches' },
     ],
   },
   {
@@ -18,12 +20,14 @@ const NAV_SECTIONS = [
     items: [
       { to: '/annuaire',        icon: 'users',    label: 'Annuaire' },
       { to: '/annuaire/listes', icon: 'bookmark', label: 'Listes' },
+      { to: '/annuaire/doublons', icon: 'filter', label: 'Doublons' },
     ],
   },
   {
     title: 'Administration',
     items: [
       { to: '/membres',  icon: 'user',     label: 'Membres' },
+      { to: '/admin',    icon: 'lock',     label: 'Administration', perm: ['members.set_role', 'permissions.manage', 'audit.read'] },
       { to: '/settings', icon: 'settings', label: 'Paramètres' },
     ],
   },
@@ -32,6 +36,7 @@ const NAV_SECTIONS = [
 export default function Sidebar() {
   const [narrow, setNarrow] = useState(false)
   const { user, role, logout } = useAuth()
+  const { can } = usePermissions()
   const navigate = useNavigate()
   const initials = (user?.email?.[0] ?? 'U').toUpperCase()
 
@@ -76,7 +81,7 @@ export default function Sidebar() {
               >
                 {section.title}
               </div>
-              {section.items.map(item => (
+              {section.items.filter(item => can(item.perm)).map(item => (
                 <NavLink
                   key={item.to}
                   to={item.to}

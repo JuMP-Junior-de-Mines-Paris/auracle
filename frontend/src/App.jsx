@@ -11,6 +11,10 @@ import MissionsPage from './features/missions/pages/MissionsPage'
 import MissionDetailPage from './features/missions/pages/MissionDetailPage'
 import MyMissionsPage from './features/missions/pages/MyMissionsPage'
 import DashboardPage from './features/dashboard/pages/DashboardPage'
+import DuplicatesPage from './features/directory/pages/DuplicatesPage'
+import TasksPage from './features/tasks/pages/TasksPage'
+import AdminPage from './features/admin/pages/AdminPage'
+import RoleRoute from './shared/components/RoleRoute'
 
 function ComingSoon({ title }) {
   return (
@@ -51,7 +55,10 @@ export default function App() {
           <Route path="/annuaire" element={<Protected><DirectoryPage /></Protected>} />
           <Route path="/annuaire/listes" element={<Protected><ListsPage /></Protected>} />
           <Route path="/annuaire/listes/:id" element={<Protected><ListsPage /></Protected>} />
+          <Route path="/annuaire/doublons" element={<Protected><DuplicatesPage /></Protected>} />
+          <Route path="/taches" element={<Protected><TasksPage /></Protected>} />
           <Route path="/membres" element={<Protected><MembersPage /></Protected>} />
+          <Route path="/admin" element={<Protected><RoleRoute perm={['members.set_role', 'permissions.manage', 'audit.read']}><AdminPage /></RoleRoute></Protected>} />
           <Route path="/missions" element={<Protected><MissionsPage /></Protected>} />
           <Route path="/missions/:id" element={<Protected><MissionDetailPage /></Protected>} />
           <Route path="/mes-missions" element={<Protected><MyMissionsPage /></Protected>} />

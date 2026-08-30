@@ -10,11 +10,13 @@ import MissionForm from '../components/MissionForm'
 import MilestoneList from '../components/MilestoneList'
 import MeetingLog from '../components/MeetingLog'
 import TeamPanel from '../components/TeamPanel'
+import { TaskList } from '../../tasks/pages/TasksPage'
 
 const TABS = [
   { id: 'overview', label: 'Aperçu' },
   { id: 'team', label: 'Équipe' },
   { id: 'milestones', label: 'Jalons' },
+  { id: 'tasks', label: 'Tâches' },
   { id: 'meetings', label: 'Réunions' },
 ]
 
@@ -122,6 +124,8 @@ export default function MissionDetailPage() {
           canManage={canEdit}
         />
       )}
+
+      {activeTab === 'tasks' && <TaskList missionId={id} />}
 
       {activeTab === 'meetings' && (
         <MeetingLog

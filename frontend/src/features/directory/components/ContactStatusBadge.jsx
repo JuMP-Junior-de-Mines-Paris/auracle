@@ -1,20 +1,19 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { STATUSES as PIPELINE, statusMeta, normalizeStatus } from '../../../shared/lib/prospect'
 
-export const STATUSES = [
-  { value: null,          label: '—',            bg: 'var(--paper-2)', color: 'var(--ink-4)' },
-  { value: 'à contacter', label: 'À contacter',  bg: '#f3f4f6',        color: '#6b7280'      },
-  { value: 'contacté',    label: 'Contacté',     bg: '#dbeafe',        color: '#1d4ed8'      },
-  { value: 'répondu',     label: 'Répondu',      bg: '#fef3c7',        color: '#d97706'      },
-  { value: 'travaillé',   label: 'Travaillé',    bg: '#dcfce7',        color: '#15803d'      },
-]
+// « — » d'abord : retirer le statut reste une action possible.
+const STATUSES = [{ code: null, label: '—' }, ...PIPELINE]
+export { STATUSES }
+
 
 export default function ContactStatusBadge({ status, onChange }) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
   const ref = useRef()
 
-  const current = STATUSES.find(s => s.value === (status ?? null)) ?? STATUSES[0]
+  const code = normalizeStatus(status ?? null)
+  const current = statusMeta(code)
 
   function handleClick(e) {
     e.stopPropagation()
@@ -41,7 +40,7 @@ export default function ContactStatusBadge({ status, onChange }) {
           fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 12,
           textTransform: 'uppercase', letterSpacing: '.04em',
           background: current.bg,
-          color: current.color,
+          color: current.fg,
           cursor: onChange ? 'pointer' : 'default',
           userSelect: 'none',
           whiteSpace: 'nowrap',
@@ -62,19 +61,19 @@ export default function ContactStatusBadge({ status, onChange }) {
         >
           {STATUSES.map(s => (
             <button
-              key={s.value ?? '__none__'}
-              onClick={e => { e.stopPropagation(); onChange(s.value); setOpen(false) }}
+              key={s.code ?? '__none__'}
+              onClick={e => { e.stopPropagation(); onChange(s.code); setOpen(false) }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 width: '100%', padding: '6px 10px', fontSize: 13, borderRadius: 6,
                 border: 'none', cursor: 'pointer', textAlign: 'left',
-                background: s.value === (status ?? null) ? 'var(--paper-2)' : 'transparent',
-                fontWeight: s.value === (status ?? null) ? 600 : 400,
+                background: s.code === code ? 'var(--paper-2)' : 'transparent',
+                fontWeight: s.code === code ? 600 : 400,
               }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--paper-2)'}
-              onMouseLeave={e => e.currentTarget.style.background = s.value === (status ?? null) ? 'var(--paper-2)' : 'transparent'}
+              onMouseLeave={e => e.currentTarget.style.background = s.code === code ? 'var(--paper-2)' : 'transparent'}
             >
-              <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: s.bg === 'var(--paper-2)' ? 'var(--ink-4)' : s.color, flexShrink: 0 }} />
+              <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: statusMeta(s.code).fg, flexShrink: 0 }} />
               {s.label}
             </button>
           ))}
