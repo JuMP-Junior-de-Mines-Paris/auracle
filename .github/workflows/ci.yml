@@ -22,7 +22,10 @@ jobs:
       # Les blocs à coller doivent refléter les migrations.
       - run: |
           python supabase/bundle.py
-          git diff --exit-code supabase/bundles/             || (echo "::error::supabase/bundles est périmé — relancez python supabase/bundle.py" && exit 1)
+          if ! git diff --exit-code supabase/bundles/; then
+            echo "::error::supabase/bundles est périmé — relancez python supabase/bundle.py"
+            exit 1
+          fi
 
   frontend:
     name: Frontend — lint, tests, build
