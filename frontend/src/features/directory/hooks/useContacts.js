@@ -14,7 +14,10 @@ import { describeError } from '../../../shared/lib/errors'
  * Sur les 15 737 fiches réelles : 0,17 ms au lieu de 67 ms pour la version
  * qui faisait un OR sur cinq colonnes.
  */
-export function useContacts({ page = 1, pageSize = 50, query = '', statusFilter = undefined } = {}) {
+export function useContacts({
+  page = 1, pageSize = 50, query = '', statusFilter = undefined,
+  contactedBy = null, onlyUncontacted = false,
+} = {}) {
   const [contacts, setContacts] = useState([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -27,6 +30,8 @@ export function useContacts({ page = 1, pageSize = 50, query = '', statusFilter 
       // undefined = pas de filtre ; null = « sans statut », qui est un filtre.
       status_filter: statusFilter ?? null,
       only_null_status: statusFilter === null,
+      contacted_by: contactedBy,
+      only_uncontacted: onlyUncontacted,
       lim: pageSize,
       off: (page - 1) * pageSize,
     })
@@ -38,13 +43,24 @@ export function useContacts({ page = 1, pageSize = 50, query = '', statusFilter 
     } else {
       // La fonction renvoie { contact, total } par ligne ; le total est
       // identique partout (fenêtre count(*) over ()).
+      // Chaque ligne porte la fiche et son historique de démarche : on les
+      // fusionne pour que l'affichage n'ait pas à jongler entre les deux.
       const rows = data ?? []
       setError(null)
-      setContacts(rows.map(r => r.contact))
+      setContacts(rows.map(r => ({
+        ...r.contact,
+        assignee_id: r.assignee_id,
+        assignee_nom: r.assignee_nom,
+        last_contact_at: r.last_contact_at,
+        last_contact_by: r.last_contact_by,
+        last_contact_nom: r.last_contact_nom,
+        last_channel: r.last_channel,
+        nb_interactions: Number(r.nb_interactions ?? 0),
+      })))
       setTotal(rows.length ? Number(rows[0].total) : 0)
     }
     setLoading(false)
-  }, [page, pageSize, query, statusFilter])
+  }, [page, pageSize, query, statusFilter, contactedBy, onlyUncontacted])
 
   useEffect(() => { fetchContacts() }, [fetchContacts])
 

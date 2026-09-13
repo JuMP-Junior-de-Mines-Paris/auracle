@@ -8,10 +8,19 @@ vi.mock('../../shared/lib/supabase', () => ({
 import { supabase } from '../../shared/lib/supabase'
 import { useContacts } from '../../features/directory/hooks/useContacts'
 
-// search_contacts renvoie une ligne par contact, chacune portant le même
-// total (count(*) over ()).
-function resultat(contacts, total = contacts.length) {
-  return { data: contacts.map(c => ({ contact: c, total })), error: null }
+// search_contacts renvoie une ligne par contact : la fiche, le total, et
+// l'historique de démarche que le hook fusionne dans l'objet contact.
+function resultat(contacts, total = contacts.length, demarche = {}) {
+  return {
+    data: contacts.map(c => ({
+      contact: c, total,
+      assignee_id: null, assignee_nom: null,
+      last_contact_at: null, last_contact_by: null, last_contact_nom: null,
+      last_channel: null, nb_interactions: 0,
+      ...demarche,
+    })),
+    error: null,
+  }
 }
 
 const JEAN = { id: 'c1', nom: 'Dupont', prenom: 'Jean', tags: [] }
@@ -24,8 +33,50 @@ describe('useContacts', () => {
     const { result } = renderHook(() => useContacts({ page: 1, pageSize: 50 }))
 
     await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(result.current.contacts).toEqual([JEAN])
+    expect(result.current.contacts[0]).toMatchObject(JEAN)
     expect(result.current.error).toBeNull()
+  })
+
+  it('fusionne l’historique de démarche dans la fiche', async () => {
+    supabase.rpc.mockResolvedValue(resultat([JEAN], 1, {
+      last_contact_at: '2026-09-01T10:00:00Z',
+      last_contact_by: 'u2',
+      last_contact_nom: 'Ziad Balbzioui',
+      last_channel: 'linkedin',
+      nb_interactions: 3,
+    }))
+    const { result } = renderHook(() => useContacts({}))
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    const c = result.current.contacts[0]
+    // L'affichage lit une seule forme, sans jongler entre deux objets.
+    expect(c.nom).toBe('Dupont')
+    expect(c.last_contact_nom).toBe('Ziad Balbzioui')
+    expect(c.last_channel).toBe('linkedin')
+    expect(c.nb_interactions).toBe(3)
+  })
+
+  it('filtre sur qui a démarché, et sur ce que personne n’a démarché', async () => {
+    supabase.rpc.mockResolvedValue(resultat([]))
+
+    const a = renderHook(() => useContacts({ contactedBy: 'u2' }))
+    await waitFor(() => expect(supabase.rpc).toHaveBeenCalled())
+    expect(supabase.rpc.mock.calls[0][1].contacted_by).toBe('u2')
+    a.unmount()
+
+    vi.clearAllMocks()
+    supabase.rpc.mockResolvedValue(resultat([]))
+    renderHook(() => useContacts({ onlyUncontacted: true }))
+    await waitFor(() => expect(supabase.rpc).toHaveBeenCalled())
+    expect(supabase.rpc.mock.calls[0][1].only_uncontacted).toBe(true)
+  })
+
+  it('compte les démarches à zéro quand il n’y en a pas', async () => {
+    supabase.rpc.mockResolvedValue(resultat([JEAN]))
+    const { result } = renderHook(() => useContacts({}))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.contacts[0].nb_interactions).toBe(0)
+    expect(result.current.contacts[0].last_contact_at).toBeNull()
   })
 
   it('passe le terme en PARAMÈTRE, jamais concaténé dans un filtre', async () => {
