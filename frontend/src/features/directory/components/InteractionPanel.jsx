@@ -60,8 +60,10 @@ function Assignment({ contactId }) {
 
 function LogForm({ onLog, lists }) {
   const [open, setOpen] = useState(false)
+  // LinkedIn par défaut : l'annuaire ne contient aucun e-mail ni téléphone,
+  // seulement 11 292 profils LinkedIn sur 15 737 fiches.
   const [f, setF] = useState({
-    channel: 'email', direction: 'sortant', outcome: 'contacte',
+    channel: 'linkedin', direction: 'sortant', outcome: 'contacte',
     summary: '', nextActionAt: '', nextAction: '', listId: '',
   })
   const [saving, setSaving] = useState(false)
@@ -73,7 +75,7 @@ function LogForm({ onLog, lists }) {
     setSaving(true); setErr(null)
     try {
       await onLog({ ...f, listId: f.listId || null })
-      setF({ channel: 'email', direction: 'sortant', outcome: 'contacte', summary: '', nextActionAt: '', nextAction: '', listId: '' })
+      setF({ channel: 'linkedin', direction: 'sortant', outcome: 'contacte', summary: '', nextActionAt: '', nextAction: '', listId: '' })
       setOpen(false)
     } catch (e2) { setErr(e2.message) } finally { setSaving(false) }
   }

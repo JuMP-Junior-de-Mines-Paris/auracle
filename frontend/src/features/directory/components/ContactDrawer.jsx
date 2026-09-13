@@ -181,7 +181,7 @@ export default function ContactDrawer({ contact: c, lists, onClose, onAddToList,
           {c.email && (
             <a
               href={`mailto:${c.email}`}
-              className="btn-ember"
+              className="btn-ghost"
               style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}
             >
               <Icon name="send" size={14} /> Envoyer un email

@@ -319,10 +319,16 @@ insert into public.roles (code, label, groupe, rank) values
   ('vice_tresorier',     'Vice-trésorier·ère',                   'bureau_etendu', 50),
   ('respo_dev_co',       'Responsable développement commercial', 'bureau_etendu', 60),
   ('respo_qualite',      'Responsable qualité',                  'bureau_etendu', 70),
+  ('respo_com',          'Responsable communication',            'bureau_etendu', 75),
   ('respo_info',         'Responsable informatique',             'bureau_etendu', 80),
   ('chef_de_projet',     'Chef·fe de projet',                    'membre',        90)
 on conflict (code) do update
   set label = excluded.label, groupe = excluded.groupe, rank = excluded.rank;
+
+-- respo_com ne figurait pas dans la liste donnée à l'oral, mais la base en
+-- contient un : l'inspection de profiles a relevé onze libellés distincts,
+-- dont « Respo Com ». Placé au bureau étendu comme les autres responsables ;
+-- à déplacer depuis la console si ce n'est pas la bonne lecture.
 
 
 -- ─────────────────────────────────────────────────────────────────────
@@ -443,13 +449,50 @@ drop function if exists public.current_user_role();
 alter table public.profiles alter column role drop default;
 alter table public.profiles alter column role type text using role::text;
 
--- Report des anciennes valeurs.
---   admin → president : seul le bureau détient admin.full, donc c'est le seul
---   report qui laisse quelqu'un capable d'administrer l'outil. Les autres
---   rôles du bureau s'attribuent ensuite depuis la console.
-update public.profiles set role = 'president'      where role = 'admin';
-update public.profiles set role = 'chef_de_projet' where role in ('project_manager', 'consultant');
-update public.profiles set role = 'chef_de_projet' where role is null or role not in (select code from public.roles);
+-- Report des valeurs réellement présentes en base.
+--
+-- L'énumération d'origine annonçait admin / project_manager / consultant,
+-- mais la base a divergé : quelqu'un a ajouté des valeurs à l'enum, et les
+-- vingt-et-un membres portent des libellés français (« Respo SI »,
+-- « Trésorière », « Cheffe de Projet »…). Mapper sur les anciennes valeurs
+-- n'aurait rien trouvé, et la règle de repli aurait basculé tout le bureau
+-- en chef de projet.
+--
+-- Comparaison sans accents ni casse : « Trésorière » et « Tresoriere »
+-- doivent tomber au même endroit, et le féminin comme le masculin aussi.
+create extension if not exists unaccent;
+
+update public.profiles p set role = m.code
+from (values
+  ('president',          array['president', 'presidente']),
+  ('vice_president',     array['vice-president', 'vice-presidente', 'vice president']),
+  ('secretaire_general', array['secretaire general', 'secretaire generale', 'secretaire']),
+  ('tresorier',          array['tresorier', 'tresoriere']),
+  ('vice_tresorier',     array['vice-tresorier', 'vice-tresoriere', 'vice tresorier', 'vice tresoriere']),
+  ('respo_dev_co',       array['respo devco', 'respo dev co', 'responsable developpement commercial']),
+  ('respo_qualite',      array['respo qualite', 'responsable qualite']),
+  ('respo_com',          array['respo com', 'responsable communication']),
+  ('respo_info',         array['respo si', 'respo info', 'responsable informatique', 'admin']),
+  ('chef_de_projet',     array['chef de projet', 'cheffe de projet', 'project_manager', 'consultant'])
+) as m(code, libelles)
+where lower(unaccent(btrim(p.role))) = any(m.libelles)
+  and p.role is distinct from m.code;
+
+-- Tout ce qui n'a pas été reconnu arrête la migration, au lieu d'être
+-- écrasé silencieusement : un rôle inconnu est une information, pas un
+-- déchet. Ajoutez-le à la table roles puis à la table de correspondance.
+do $$
+declare restants text;
+begin
+  select string_agg(distinct coalesce(role::text, '(nul)'), ', ')
+    into restants
+  from public.profiles
+  where role is null or role::text not in (select code from public.roles);
+
+  if restants is not null then
+    raise exception E'Rôles non reconnus en base : %.\nAjoutez-les à public.roles et à la correspondance ci-dessus avant de rejouer.', restants;
+  end if;
+end $$;
 
 alter table public.profiles alter column role set not null;
 alter table public.profiles alter column role set default 'chef_de_projet';
@@ -1154,6 +1197,13 @@ alter table public.contacts
 
 -- Drapeau « ne plus jamais contacter », prioritaire sur toutes les campagnes.
 alter table public.contacts add column if not exists do_not_contact boolean not null default false;
+
+-- schema.sql déclare created_by sur contacts, mais la table déployée ne l'a
+-- pas : le dépôt et la base ont divergé. upsert_contact() écrit cette
+-- colonne, on la crée donc ici plutôt que de renoncer à savoir qui a saisi
+-- une fiche. Les 15 737 fiches existantes restent à null, ce qui est exact —
+-- elles ont été chargées hors application.
+alter table public.contacts add column if not exists created_by uuid references public.profiles(id) on delete set null;
 
 
 -- ─────────────────────────────────────────────────────────────────────

@@ -64,6 +64,13 @@ alter table public.contacts
 -- Drapeau « ne plus jamais contacter », prioritaire sur toutes les campagnes.
 alter table public.contacts add column if not exists do_not_contact boolean not null default false;
 
+-- schema.sql déclare created_by sur contacts, mais la table déployée ne l'a
+-- pas : le dépôt et la base ont divergé. upsert_contact() écrit cette
+-- colonne, on la crée donc ici plutôt que de renoncer à savoir qui a saisi
+-- une fiche. Les 15 737 fiches existantes restent à null, ce qui est exact —
+-- elles ont été chargées hors application.
+alter table public.contacts add column if not exists created_by uuid references public.profiles(id) on delete set null;
+
 
 -- ─────────────────────────────────────────────────────────────────────
 -- 2. Index (F-14, F-21)

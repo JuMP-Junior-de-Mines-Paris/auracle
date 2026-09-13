@@ -242,7 +242,8 @@ describe('Suivi des démarches', () => {
     await waitFor(() => {
       const ins = sb.__calls.insert.find(i => i.table === 'contact_interactions')
       expect(ins?.payload.summary).toBe('Premier contact par mail')
-      expect(ins?.payload.channel).toBe('email')
+      // LinkedIn par défaut : l'annuaire réel ne contient aucun e-mail.
+      expect(ins?.payload.channel).toBe('linkedin')
       expect(ins?.payload.outcome).toBe('contacte')
       expect(ins?.payload.contact_id).toBe('c1')
     })
