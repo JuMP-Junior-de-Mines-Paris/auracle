@@ -20,6 +20,7 @@ const NAV_SECTIONS = [
     title: 'Prospection',
     items: [
       { to: '/annuaire',        icon: 'users',    label: 'Annuaire' },
+      { to: '/annuaire/segments', icon: 'filter', label: 'Segments' },
       { to: '/annuaire/listes', icon: 'bookmark', label: 'Listes' },
       { to: '/annuaire/relances', icon: 'bell',   label: 'Relances' },
       { to: '/annuaire/progression', icon: 'trending', label: 'Progression' },

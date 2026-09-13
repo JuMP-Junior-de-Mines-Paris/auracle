@@ -20,7 +20,7 @@ import sys
 # Ordre d'application. 012 est isolée volontairement (voir plus haut).
 BLOC_A = ['007_security_hotfix.sql', '008_rbac_roles.sql', '009_permission_policies.sql',
           '010_audit_log.sql', '011_contacts_dedup.sql', '013_prospection.sql',
-          '014_tasks.sql', '015_notes.sql', '016_search_index.sql', '017_signup_trigger.sql', '018_notebooks.sql', '019_directory_outreach.sql', '020_prospection_stats.sql']
+          '014_tasks.sql', '015_notes.sql', '016_search_index.sql', '017_signup_trigger.sql', '018_notebooks.sql', '019_directory_outreach.sql', '020_prospection_stats.sql', '021_segments.sql']
 BLOC_B = ['012_contacts_unique.sql']
 
 ENTETE_A = """-- ═══════════════════════════════════════════════════════════════════
