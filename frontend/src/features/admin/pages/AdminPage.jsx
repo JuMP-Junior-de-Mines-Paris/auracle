@@ -1,11 +1,12 @@
 import { useState, Fragment } from 'react'
 import { Icon } from '../../../shared/lib/icons'
-import { roleMeta, GROUPES } from '../../../shared/lib/roles'
+import { roleMeta } from '../../../shared/lib/roles'
 import { usePermissions } from '../../auth/hooks/usePermissions'
-import { usePermissionMatrix, useMemberAdmin, useAuditLog } from '../hooks/useAdmin'
+import { usePermissionMatrix, useAuditLog } from '../hooks/useAdmin'
 
+// Plus d'onglet « Membres » : il affichait la même liste que la page
+// Membres, à un sélecteur près — lequel vit désormais là-bas.
 const TABS = [
-  { id: 'membres',     label: 'Membres',     perm: null },
   { id: 'permissions', label: 'Permissions', perm: 'permissions.manage' },
   { id: 'journal',     label: 'Journal',     perm: 'audit.read' },
 ]
@@ -24,68 +25,6 @@ function Banner({ text, onDismiss }) {
       <button onClick={onDismiss} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 2 }}>
         <Icon name="x" size={14} />
       </button>
-    </div>
-  )
-}
-
-function MembersTab({ onError }) {
-  const { members, loading, setRole } = useMemberAdmin()
-  const { roles } = usePermissionMatrix()
-  const { can } = usePermissions()
-  const maySetRole = can('members.set_role')
-  const [busy, setBusy] = useState(null)
-
-  async function handleRole(memberId, roleCode) {
-    setBusy(memberId)
-    try { await setRole(memberId, roleCode) }
-    catch (e) { onError(e.message) }
-    finally { setBusy(null) }
-  }
-
-  if (loading) return <div style={{ color: 'var(--ink-3)', fontSize: 14 }}>Chargement…</div>
-
-  return (
-    <div className="card overflow-hidden">
-      <table className="tbl">
-        <thead>
-          <tr><th>Membre</th><th>Email</th><th style={{ width: 230 }}>Rôle</th><th style={{ width: 130 }}>Cercle</th></tr>
-        </thead>
-        <tbody>
-          {members.map(m => {
-            const meta = roleMeta(m.role)
-            return (
-              <tr key={m.id}>
-                <td style={{ fontWeight: 500, fontSize: 13.5 }}>
-                  {m.prenom || m.nom
-                    ? <>{m.prenom} {m.nom?.toUpperCase()}</>
-                    : <span style={{ color: 'var(--ink-4)', fontStyle: 'italic' }}>Nom non renseigné</span>}
-                </td>
-                <td style={{ fontSize: 13, color: 'var(--ink-2)' }}>{m.email ?? '—'}</td>
-                <td>
-                  {maySetRole ? (
-                    <select
-                      className="field"
-                      style={{ fontSize: 13, padding: '5px 8px' }}
-                      value={m.role ?? ''}
-                      disabled={busy === m.id}
-                      onChange={e => handleRole(m.id, e.target.value)}
-                    >
-                      {roles.map(r => <option key={r.code} value={r.code}>{r.label}</option>)}
-                    </select>
-                  ) : (
-                    <span style={{ background: meta.bg, color: meta.fg, borderRadius: 99, padding: '3px 10px', fontSize: 12, fontWeight: 500 }}>
-                      {meta.short}
-                    </span>
-                  )}
-                </td>
-                <td style={{ fontSize: 12, color: 'var(--ink-3)' }}>
-                  {GROUPES[meta.groupe]?.label ?? '—'}
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
     </div>
   )
 }
@@ -243,7 +182,7 @@ function JournalTab() {
 export default function AdminPage() {
   const { can } = usePermissions()
   const visible = TABS.filter(t => !t.perm || can(t.perm))
-  const [tab, setTab] = useState(visible[0]?.id ?? 'membres')
+  const [tab, setTab] = useState(visible[0]?.id ?? 'permissions')
   const [err, setErr] = useState(null)
 
   return (
@@ -273,7 +212,6 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {tab === 'membres'     && <MembersTab onError={setErr} />}
       {tab === 'permissions' && <PermissionsTab onError={setErr} />}
       {tab === 'journal'     && <JournalTab />}
     </div>

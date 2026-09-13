@@ -40,58 +40,33 @@ function mount(ui, { permissions = ['admin.full'], tables = {}, rpcs = {} } = {}
 
 beforeEach(() => vi.clearAllMocks())
 
-describe('Console d\'administration', () => {
+describe('Console d’administration', () => {
   const tables = {
-    profiles: [
-      { id: 'u1', prenom: 'Léah', nom: 'Toledano', email: 'leah@jump-mines.fr', role: 'president' },
-      { id: 'u2', prenom: 'Ziad', nom: 'Balbzioui', email: 'ziad@jump-mines.fr', role: 'chef_de_projet' },
-    ],
+    profiles: [{ id: 'u1', prenom: 'Léah', nom: 'Toledano', email: 'leah@jump-mines.fr', role: 'president' }],
     roles: ROLES,
     permissions: PERMS,
     role_permissions: [{ role_code: 'president', permission_code: 'admin.full' }],
     audit_log: [],
   }
 
-  it('liste les membres avec leur cercle', async () => {
+  it('ne garde que ce qui lui est propre — la liste des membres a sa page', async () => {
     mount(<AdminPage />, { tables })
-    await waitFor(() => expect(screen.getByText('leah@jump-mines.fr')).toBeInTheDocument())
-    // « Membres » est à la fois un onglet et un cercle : on cible la cellule.
-    expect(screen.getByText('Bureau', { selector: 'td' })).toBeInTheDocument()
-    expect(screen.getByText('Membres', { selector: 'td' })).toBeInTheDocument()
-    expect(screen.getByText('ziad@jump-mines.fr')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('Permissions', { selector: 'button' })).toBeInTheDocument())
+    expect(screen.getByText('Journal', { selector: 'button' })).toBeInTheDocument()
+    expect(screen.queryByText('Membres', { selector: 'button' })).not.toBeInTheDocument()
   })
 
-  it('passe le changement de rôle par la RPC, pas par un update direct', async () => {
-    const sb = mount(<AdminPage />, { tables, rpcs: { set_member_role: null } })
-    await waitFor(() => expect(screen.getByText('leah@jump-mines.fr')).toBeInTheDocument())
-
-    const selects = screen.getAllByRole('combobox')
-    await userEvent.selectOptions(selects[0], 'chef_de_projet')
-
-    await waitFor(() => {
-      expect(sb.__calls.rpc.some(c => c.name === 'set_member_role')).toBe(true)
-    })
-    // 007 a retiré `role` des colonnes écrivables : un update direct échouerait.
-    expect(sb.__calls.update.filter(u => u.table === 'profiles')).toHaveLength(0)
-  })
-
-  it('masque les onglets dont la permission manque', async () => {
-    mount(<AdminPage />, { tables, permissions: ['members.set_role'] })
-    await waitFor(() => expect(screen.getByText('Membres', { selector: 'button' })).toBeInTheDocument())
+  it('masque un onglet dont la permission manque', async () => {
+    mount(<AdminPage />, { tables, permissions: ['audit.read'] })
+    await waitFor(() => expect(screen.getByText('Journal', { selector: 'button' })).toBeInTheDocument())
     expect(screen.queryByText('Permissions', { selector: 'button' })).not.toBeInTheDocument()
-    expect(screen.queryByText('Journal', { selector: 'button' })).not.toBeInTheDocument()
   })
 
   it('la matrice écrit dans role_permissions quand on coche', async () => {
     const sb = mount(<AdminPage />, { tables })
-    await waitFor(() => expect(screen.getByText('leah@jump-mines.fr')).toBeInTheDocument())
-
-    await userEvent.click(screen.getByText('Permissions', { selector: 'button' }))
     await waitFor(() => expect(screen.getByText('Fusionner des doublons')).toBeInTheDocument())
-
     const cases = screen.getAllByRole('checkbox')
     await userEvent.click(cases.find(c => !c.checked))
-
     await waitFor(() => {
       expect(sb.__calls.insert.some(i => i.table === 'role_permissions')).toBe(true)
     })

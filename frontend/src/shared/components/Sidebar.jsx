@@ -5,33 +5,37 @@ import { roleMeta } from '../../shared/lib/roles'
 import { useAuth } from '../../features/auth/hooks/useAuth'
 import { usePermissions } from '../../features/auth/hooks/usePermissions'
 
+// Douze entrées au lieu de treize : « Mes missions » n'était qu'un filtre
+// de Missions et le duplique — Tâches fait déjà cela avec un bouton. La
+// liste des membres, elle, existait aussi comme onglet d'Administration ;
+// c'est désormais un seul écran, qui laisse éditer le rôle à qui en a le
+// droit plutôt que d'avoir deux pages pour vingt-et-une personnes.
 const NAV_SECTIONS = [
   {
     title: 'Pilotage',
     items: [
-      { to: '/dashboard',    icon: 'home',      label: 'Tableau de bord' },
-      { to: '/missions',     icon: 'briefcase', label: 'Missions' },
-      { to: '/mes-missions', icon: 'award',     label: 'Mes missions' },
-      { to: '/taches',       icon: 'check',     label: 'Tâches' },
-      { to: '/carnets',      icon: 'book',      label: 'Carnets' },
+      { to: '/dashboard', icon: 'home',      label: 'Accueil' },
+      { to: '/taches',    icon: 'check',     label: 'Tâches' },
+      { to: '/missions',  icon: 'briefcase', label: 'Missions' },
+      { to: '/carnets',   icon: 'book',      label: 'Carnets' },
     ],
   },
   {
     title: 'Prospection',
     items: [
-      { to: '/annuaire',        icon: 'users',    label: 'Annuaire' },
-      { to: '/annuaire/segments', icon: 'filter', label: 'Segments' },
-      { to: '/annuaire/listes', icon: 'bookmark', label: 'Listes' },
-      { to: '/annuaire/relances', icon: 'bell',   label: 'Relances' },
+      { to: '/annuaire',             icon: 'users',    label: 'Annuaire' },
+      { to: '/annuaire/segments',    icon: 'filter',   label: 'Segments' },
+      { to: '/annuaire/listes',      icon: 'bookmark', label: 'Campagnes' },
+      { to: '/annuaire/relances',    icon: 'bell',     label: 'Relances' },
       { to: '/annuaire/progression', icon: 'trending', label: 'Progression' },
     ],
   },
   {
-    title: 'Administration',
+    title: 'Réglages',
     items: [
       { to: '/membres',  icon: 'user',     label: 'Membres' },
+      { to: '/settings', icon: 'settings', label: 'Mon profil' },
       { to: '/admin',    icon: 'lock',     label: 'Administration', perm: ['members.set_role', 'permissions.manage', 'audit.read'] },
-      { to: '/settings', icon: 'settings', label: 'Paramètres' },
     ],
   },
 ]

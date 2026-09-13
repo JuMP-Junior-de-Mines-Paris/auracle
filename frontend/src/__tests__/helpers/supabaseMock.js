@@ -21,8 +21,8 @@ export function makeSupabase({ tables = {}, rpcs = {}, user = { id: 'u1', email:
 
     const chain = {}
     const passthrough = [
-      'select', 'order', 'range', 'or', 'ilike', 'eq', 'neq', 'is', 'in',
-      'lt', 'gt', 'lte', 'gte', 'match', 'limit', 'contains',
+      'select', 'order', 'range', 'or', 'ilike', 'eq', 'neq', 'is', 'in', 'not',
+      'lt', 'gt', 'lte', 'gte', 'match', 'limit', 'contains', 'filter', 'overlaps',
     ]
     for (const m of passthrough) chain[m] = vi.fn(() => chain)
 

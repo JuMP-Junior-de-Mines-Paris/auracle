@@ -1,5 +1,8 @@
 import { useMembers } from '../hooks/useMembers'
 import { roleMeta, groupMembers } from '../../../shared/lib/roles'
+import { usePermissions } from '../../auth/hooks/usePermissions'
+import { useAction } from '../../../shared/components/ToastProvider'
+import { usePermissionMatrix, useMemberAdmin } from '../../admin/hooks/useAdmin'
 
 function MemberAvatar({ member }) {
   const initials = `${member.prenom?.[0] ?? ''}${member.nom?.[0] ?? ''}`.toUpperCase() || '?'
@@ -12,7 +15,14 @@ function MemberAvatar({ member }) {
 }
 
 export default function MembersPage() {
-  const { members, loading, error } = useMembers()
+  // Une seule page pour les vingt-et-un membres : elle se contente d'être
+  // un annuaire interne, et devient modifiable pour qui en a le droit.
+  const { members, loading, error, refetch } = useMembers()
+  const { roles } = usePermissionMatrix()
+  const { setRole } = useMemberAdmin()
+  const { can } = usePermissions()
+  const run = useAction()
+  const modifiable = can('members.set_role')
 
   return (
     <div className="px-8 py-6 fade-up">
@@ -21,6 +31,7 @@ export default function MembersPage() {
           <h1 className="page-title">Membres</h1>
           <p style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 4 }}>
             {members.length} membre{members.length !== 1 ? 's' : ''}
+            {modifiable && ' · vous pouvez changer les rôles'}
           </p>
         </div>
       </div>
@@ -69,12 +80,26 @@ export default function MembersPage() {
                         : <span style={{ color: 'var(--ink-4)' }}>—</span>}
                     </td>
                     <td>
-                      <span
-                        title={role.label}
-                        style={{ background: role.bg, color: role.fg, borderRadius: 99, padding: '3px 10px', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap' }}
-                      >
-                        {role.short}
-                      </span>
+                      {modifiable ? (
+                        <select
+                          className="field"
+                          style={{ fontSize: 12.5, padding: '4px 7px', background: role.bg, color: role.fg }}
+                          value={m.role ?? ''}
+                          onChange={e => run(
+                            async () => { await setRole(m.id, e.target.value); await refetch() },
+                            { succes: `${m.prenom ?? 'Ce membre'} est désormais ${roleMeta(e.target.value).label.toLowerCase()}` }
+                          )}
+                        >
+                          {roles.map(r => <option key={r.code} value={r.code}>{r.label}</option>)}
+                        </select>
+                      ) : (
+                        <span
+                          title={role.label}
+                          style={{ background: role.bg, color: role.fg, borderRadius: 99, padding: '3px 10px', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap' }}
+                        >
+                          {role.short}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 )

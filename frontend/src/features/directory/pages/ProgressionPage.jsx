@@ -157,9 +157,11 @@ function ParMembre({ members, onVoir }) {
             Un contact est rattaché à l'auteur de sa dernière démarche.
           </div>
         </div>
-        <button className="btn-ghost" style={{ fontSize: 12.5 }} onClick={() => setTous(v => !v)}>
-          {tous ? `Masquer les inactifs` : `Voir les ${members.length - actifs.length} inactifs`}
-        </button>
+        {members.length > actifs.length && (
+          <button className="btn-ghost" style={{ fontSize: 12.5 }} onClick={() => setTous(v => !v)}>
+            {tous ? 'Masquer les inactifs' : `Voir les ${members.length - actifs.length} inactifs`}
+          </button>
+        )}
       </div>
 
       <div style={{ overflowX: 'auto' }}>

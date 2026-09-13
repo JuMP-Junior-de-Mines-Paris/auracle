@@ -9,7 +9,6 @@ import ListsPage from './features/directory/pages/ListsPage'
 import MembersPage from './features/members/pages/MembersPage'
 import MissionsPage from './features/missions/pages/MissionsPage'
 import MissionDetailPage from './features/missions/pages/MissionDetailPage'
-import MyMissionsPage from './features/missions/pages/MyMissionsPage'
 import DashboardPage from './features/dashboard/pages/DashboardPage'
 import FollowupsPage from './features/directory/pages/FollowupsPage'
 import ProgressionPage from './features/directory/pages/ProgressionPage'
@@ -40,7 +39,7 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={<Navigate to="/annuaire" replace />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/annuaire" element={<Protected><DirectoryPage /></Protected>} />
           <Route path="/annuaire/listes" element={<Protected><ListsPage /></Protected>} />
           <Route path="/annuaire/listes/:id" element={<Protected><CampaignPage /></Protected>} />
@@ -54,7 +53,6 @@ export default function App() {
           <Route path="/admin" element={<Protected><RoleRoute perm={['members.set_role', 'permissions.manage', 'audit.read']}><AdminPage /></RoleRoute></Protected>} />
           <Route path="/missions" element={<Protected><MissionsPage /></Protected>} />
           <Route path="/missions/:id" element={<Protected><MissionDetailPage /></Protected>} />
-          <Route path="/mes-missions" element={<Protected><MyMissionsPage /></Protected>} />
           <Route path="/dashboard" element={<Protected><DashboardPage /></Protected>} />
           <Route path="/settings" element={<Protected><SettingsPage /></Protected>} />
         </Routes>
