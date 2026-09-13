@@ -101,14 +101,24 @@ async def create_member(body: CreateMember, _user=Depends(require('members.creat
     if user is None:
         raise HTTPException(status_code=502, detail='Supabase Auth n’a pas renvoyé de compte')
 
-    # Le trigger handle_new_user a déjà inséré la ligne profiles ; on la
-    # complète plutôt que d'en insérer une seconde.
-    supabase.table('profiles').update({
+    # upsert et non update : le trigger on_auth_user_created a normalement
+    # déjà créé la ligne, mais il manquait en base (corrigé par la migration
+    # 017) et un update silencieux ne touchait alors AUCUNE ligne — le
+    # compte existait sans profil, donc sans la moindre permission, sans que
+    # rien ne le signale. L'upsert rend la route correcte dans les deux cas.
+    supabase.table('profiles').upsert({
+        'id': str(user.id),
         'prenom': body.prenom,
         'nom': body.nom,
         'email': body.email,
         'role': body.role,
-    }).eq('id', user.id).execute()
+    }).execute()
+
+    # Un compte sans profil est inutilisable : on le dit plutôt que de
+    # renvoyer un mot de passe pour un accès qui ne marchera pas.
+    check = supabase.table('profiles').select('id').eq('id', str(user.id)).execute()
+    if not check.data:
+        raise HTTPException(status_code=502, detail='Compte créé mais profil absent — prévenez le responsable informatique')
 
     return MemberCreated(id=str(user.id), email=body.email, password=password)
 
