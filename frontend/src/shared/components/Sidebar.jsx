@@ -22,6 +22,7 @@ const NAV_SECTIONS = [
       { to: '/annuaire',        icon: 'users',    label: 'Annuaire' },
       { to: '/annuaire/listes', icon: 'bookmark', label: 'Listes' },
       { to: '/annuaire/relances', icon: 'bell',   label: 'Relances' },
+      { to: '/annuaire/progression', icon: 'trending', label: 'Progression' },
     ],
   },
   {

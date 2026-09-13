@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Icon } from '../../../shared/lib/icons'
 import Can from '../../../shared/components/Can'
 import { usePermissions } from '../../auth/hooks/usePermissions'
@@ -152,7 +153,10 @@ export default function DirectoryPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingContact, setEditingContact] = useState(null)
   const [showImport, setShowImport] = useState(false)
-  const [contactedBy, setContactedBy] = useState(null)
+  // La page Progression renvoie ici avec ?demarche_par=<membre> : le filtre
+  // doit être pris au montage, sinon le lien ne mène nulle part.
+  const [params] = useSearchParams()
+  const [contactedBy, setContactedBy] = useState(params.get('demarche_par'))
   const [onlyUncontacted, setOnlyUncontacted] = useState(false)
 
   // Bulk action state

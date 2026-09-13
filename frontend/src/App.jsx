@@ -12,6 +12,7 @@ import MissionDetailPage from './features/missions/pages/MissionDetailPage'
 import MyMissionsPage from './features/missions/pages/MyMissionsPage'
 import DashboardPage from './features/dashboard/pages/DashboardPage'
 import FollowupsPage from './features/directory/pages/FollowupsPage'
+import ProgressionPage from './features/directory/pages/ProgressionPage'
 import TasksPage from './features/tasks/pages/TasksPage'
 import AdminPage from './features/admin/pages/AdminPage'
 import RoleRoute from './shared/components/RoleRoute'
@@ -43,6 +44,7 @@ export default function App() {
           <Route path="/annuaire/listes" element={<Protected><ListsPage /></Protected>} />
           <Route path="/annuaire/listes/:id" element={<Protected><CampaignPage /></Protected>} />
           <Route path="/annuaire/relances" element={<Protected><FollowupsPage /></Protected>} />
+          <Route path="/annuaire/progression" element={<Protected><ProgressionPage /></Protected>} />
           <Route path="/taches" element={<Protected><TasksPage /></Protected>} />
           <Route path="/carnets" element={<Protected><NotebooksPage /></Protected>} />
           <Route path="/carnets/:id" element={<Protected><NotebookPage /></Protected>} />
