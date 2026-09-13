@@ -11,7 +11,6 @@ import MissionsPage from './features/missions/pages/MissionsPage'
 import MissionDetailPage from './features/missions/pages/MissionDetailPage'
 import MyMissionsPage from './features/missions/pages/MyMissionsPage'
 import DashboardPage from './features/dashboard/pages/DashboardPage'
-import DuplicatesPage from './features/directory/pages/DuplicatesPage'
 import FollowupsPage from './features/directory/pages/FollowupsPage'
 import TasksPage from './features/tasks/pages/TasksPage'
 import AdminPage from './features/admin/pages/AdminPage'
@@ -42,7 +41,6 @@ export default function App() {
           <Route path="/annuaire/listes" element={<Protected><ListsPage /></Protected>} />
           <Route path="/annuaire/listes/:id" element={<Protected><CampaignPage /></Protected>} />
           <Route path="/annuaire/relances" element={<Protected><FollowupsPage /></Protected>} />
-          <Route path="/annuaire/doublons" element={<Protected><DuplicatesPage /></Protected>} />
           <Route path="/taches" element={<Protected><TasksPage /></Protected>} />
           <Route path="/membres" element={<Protected><MembersPage /></Protected>} />
           <Route path="/admin" element={<Protected><RoleRoute perm={['members.set_role', 'permissions.manage', 'audit.read']}><AdminPage /></RoleRoute></Protected>} />

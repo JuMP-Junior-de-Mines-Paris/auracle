@@ -121,7 +121,7 @@ export default function ContactForm({ contact, onClose, onSubmit }) {
                 ))}
               </div>
               <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 6 }}>
-                Vous pouvez enregistrer quand même — les doublons se fusionnent depuis la page Doublons.
+                Vous pouvez enregistrer quand même si c’est bien quelqu’un d’autre.
               </div>
             </div>
           )}

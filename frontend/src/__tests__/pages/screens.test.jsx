@@ -12,7 +12,6 @@ vi.mock('../../shared/lib/supabase', () => ({
 import { makeSupabase } from '../helpers/supabaseMock'
 import { AuthProvider } from '../../features/auth/hooks/useAuth'
 import AdminPage from '../../features/admin/pages/AdminPage'
-import DuplicatesPage from '../../features/directory/pages/DuplicatesPage'
 import TasksPage from '../../features/tasks/pages/TasksPage'
 import InteractionPanel from '../../features/directory/components/InteractionPanel'
 
@@ -96,64 +95,6 @@ describe('Console d\'administration', () => {
     await waitFor(() => {
       expect(sb.__calls.insert.some(i => i.table === 'role_permissions')).toBe(true)
     })
-  })
-})
-
-describe('Page Doublons', () => {
-  const contacts = [
-    { id: 'c1', prenom: 'Jean', nom: 'Dupont', email: 'j@x.fr', entreprise_actuelle: 'Total', telephone: '0102030405', ville: 'Paris' },
-    { id: 'c2', prenom: 'Jean', nom: 'Dupont', email: 'j@x.fr', entreprise_actuelle: null, telephone: null },
-  ]
-
-  it('propose la fiche la plus complète comme maître', async () => {
-    mount(<DuplicatesPage />, {
-      tables: {
-        duplicate_clusters: [{ cle: 'email', valeur: 'j@x.fr', n: 2, contact_ids: ['c1', 'c2'] }],
-        contacts,
-      },
-    })
-    await waitFor(() => expect(screen.getByText('Même adresse e-mail')).toBeInTheDocument())
-
-    // c1 a plus de champs renseignés : c'est lui qui doit être coché.
-    const radios = screen.getAllByRole('radio')
-    expect(radios[0].checked).toBe(true)
-    expect(radios[1].checked).toBe(false)
-  })
-
-  it('appelle merge_contacts avec le maître et les doublons', async () => {
-    const sb = mount(<DuplicatesPage />, {
-      tables: {
-        duplicate_clusters: [{ cle: 'email', valeur: 'j@x.fr', n: 2, contact_ids: ['c1', 'c2'] }],
-        contacts,
-      },
-      rpcs: { merge_contacts: null },
-    })
-    await waitFor(() => expect(screen.getByText('Fusionner')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Fusionner'))
-
-    await waitFor(() => {
-      const call = sb.__calls.rpc.find(c => c.name === 'merge_contacts')
-      expect(call).toBeTruthy()
-      expect(call.args).toEqual({ master_id: 'c1', duplicate_ids: ['c2'] })
-    })
-  })
-
-  it('cache le bouton de fusion sans la permission', async () => {
-    mount(<DuplicatesPage />, {
-      permissions: ['contacts.write'],
-      tables: {
-        duplicate_clusters: [{ cle: 'email', valeur: 'j@x.fr', n: 2, contact_ids: ['c1', 'c2'] }],
-        contacts,
-      },
-    })
-    await waitFor(() => expect(screen.getByText('Même adresse e-mail')).toBeInTheDocument())
-    expect(screen.queryByText('Fusionner')).not.toBeInTheDocument()
-    expect(screen.getByText(/permission/i)).toBeInTheDocument()
-  })
-
-  it('annonce un annuaire propre plutôt qu\'une page vide', async () => {
-    mount(<DuplicatesPage />, { tables: { duplicate_clusters: [], contacts: [] } })
-    await waitFor(() => expect(screen.getByText('Aucun doublon')).toBeInTheDocument())
   })
 })
 
