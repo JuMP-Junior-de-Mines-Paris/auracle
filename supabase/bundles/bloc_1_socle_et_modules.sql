@@ -6,7 +6,7 @@
 --  Chaque migration garde sa propre transaction : si l'une échoue, les
 --  précédentes restent acquises et le message dit laquelle reprendre.
 --
---  Contient : 007, 008, 009, 010, 011, 013, 014, 015
+--  Contient : 007, 008, 009, 010, 011, 013, 014, 015, 016
 --
 --  APRÈS : attribuer les vrais rôles depuis /admin, puis nettoyer
 --  /annuaire/doublons, puis exécuter le bloc 2.
@@ -45,9 +45,19 @@ security definer
 stable
 set search_path = public, pg_temp
 as $$
+  -- role::text et non role = 'admin' : sur cette base l'énumération a été
+  -- étendue avec des libellés français et ne contient PLUS 'admin', si bien
+  -- que la comparaison directe échoue au typage (22P02) avant même de lire
+  -- une ligne. Le cast compare des chaînes et fonctionne quelles que soient
+  -- les valeurs de l'enum.
+  --
+  -- Conséquence assumée : entre 007 et 008, plus personne n'est admin, donc
+  -- personne ne bénéficie de l'exception. C'est sans danger — 007 sert à
+  -- FERMER deux trous, pas à ouvrir des droits — et 008, qui suit
+  -- immédiatement, redéfinit cette fonction sur la vraie matrice.
   select exists (
     select 1 from public.profiles
-    where id = uid and role = 'admin'
+    where id = uid and role::text = 'admin'
   );
 $$;
 
@@ -445,6 +455,29 @@ on conflict do nothing;
 -- recréée en text à la section 5, set_member_role() à la section 6.
 drop function if exists public.set_member_role(uuid, user_role);
 drop function if exists public.current_user_role();
+
+-- Postgres refuse de changer le type d'une colonne dont dépend une policy.
+-- « contacts: admin delete » (schema.sql) lit profiles.role ; elle doit
+-- sauter d'abord. 009 la remplace par un test sur has_perm('contacts.delete').
+-- Entre les deux, contacts n'a plus de policy DELETE, donc plus personne ne
+-- supprime de contact — un manque de droits, jamais un excès.
+drop policy if exists "contacts: admin delete" on public.contacts;
+
+-- Si une AUTRE policy dépend encore de la colonne, on s'arrête en la
+-- nommant plutôt que de laisser Postgres répondre par un 0A000 obscur.
+do $$
+declare restantes text;
+begin
+  select string_agg(format('%s.%s', tablename, policyname), ', ')
+    into restantes
+  from pg_policies
+  where schemaname = 'public'
+    and (coalesce(qual, '') || ' ' || coalesce(with_check, '')) ~ 'profiles\.role';
+
+  if restantes is not null then
+    raise exception E'Ces policies dépendent encore de profiles.role et empêchent le changement de type : %.\nSupprimez-les (elles seront recréées en 009) avant de rejouer.', restantes;
+  end if;
+end $$;
 
 alter table public.profiles alter column role drop default;
 alter table public.profiles alter column role type text using role::text;
@@ -2090,3 +2123,85 @@ grant execute on function public.purge_orphan_notes() to authenticated;
 commit;
 
 do $$ begin raise notice '  ✓ 015_notes.sql appliquée'; end $$;
+
+
+-- ───────────────────────────────────────────────────────────────
+--  016_search_index.sql
+-- ───────────────────────────────────────────────────────────────
+
+-- supabase/migrations/016_search_index.sql
+-- Correction de search_contacts() : les index trigrammes posés en 011
+-- existaient bien, mais la fonction ne les utilisait pas.
+--
+-- Mesuré sur les 15 737 fiches réelles :
+--   ilike sur UNE colonne indexée   -> Bitmap Index Scan,  1,1 ms
+--   le même ilike en OR sur cinq    -> Seq Scan        , 67,0 ms
+--
+-- Le planificateur ne combine pas quatre index GIN distincts derrière un OR :
+-- il estime le parcours séquentiel moins cher et abandonne les index. Poser
+-- les index ne suffisait donc pas — il fallait une seule colonne à
+-- interroger.
+--
+-- D'où une colonne générée qui concatène ce sur quoi on cherche, avec son
+-- unique index. Effet de bord assumé : « total paris » trouve désormais la
+-- personne qui travaille chez Total à Paris, ce qui est plutôt souhaitable
+-- pour de la prospection.
+
+begin;
+
+alter table public.contacts
+  add column if not exists search_blob text
+  generated always as (
+    public.immutable_unaccent(lower(
+      coalesce(prenom, '') || ' ' || coalesce(nom, '') || ' ' ||
+      coalesce(entreprise_actuelle, '') || ' ' || coalesce(titre_poste, '') || ' ' ||
+      coalesce(ville, '') || ' ' || coalesce(email, '')
+    ))
+  ) stored;
+
+create index if not exists contacts_search_blob_trgm_idx
+  on public.contacts using gin (search_blob gin_trgm_ops);
+
+-- Les quatre index par colonne deviennent inutiles à la recherche : ils
+-- coûtaient de l'écriture à chaque import sans plus rien servir.
+drop index if exists public.contacts_fullname_trgm_idx;
+drop index if exists public.contacts_entreprise_trgm_idx;
+drop index if exists public.contacts_ville_trgm_idx;
+drop index if exists public.contacts_titre_trgm_idx;
+
+create or replace function public.search_contacts(
+  q                text    default null,
+  status_filter    text    default null,
+  only_null_status boolean default false,
+  lim              int     default 50,
+  off              int     default 0
+)
+returns table (contact public.contacts, total bigint)
+language sql
+stable
+security invoker
+set search_path = public, pg_temp
+as $$
+  with filtered as (
+    select c.*
+    from public.contacts c
+    where (
+        q is null or btrim(q) = ''
+        -- Un seul prédicat, sur une seule colonne indexée : c'est ce qui
+        -- permet au planificateur de choisir le GIN trigramme.
+        or c.search_blob like '%' || public.immutable_unaccent(lower(btrim(q))) || '%'
+      )
+      and (not only_null_status or c.status is null)
+      and (status_filter is null or c.status = status_filter)
+  )
+  select f::public.contacts, count(*) over () as total
+  from filtered f
+  order by f.nom, f.prenom
+  limit lim offset off;
+$$;
+
+grant execute on function public.search_contacts(text, text, boolean, int, int) to authenticated;
+
+commit;
+
+do $$ begin raise notice '  ✓ 016_search_index.sql appliquée'; end $$;

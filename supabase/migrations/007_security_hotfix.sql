@@ -26,9 +26,19 @@ security definer
 stable
 set search_path = public, pg_temp
 as $$
+  -- role::text et non role = 'admin' : sur cette base l'énumération a été
+  -- étendue avec des libellés français et ne contient PLUS 'admin', si bien
+  -- que la comparaison directe échoue au typage (22P02) avant même de lire
+  -- une ligne. Le cast compare des chaînes et fonctionne quelles que soient
+  -- les valeurs de l'enum.
+  --
+  -- Conséquence assumée : entre 007 et 008, plus personne n'est admin, donc
+  -- personne ne bénéficie de l'exception. C'est sans danger — 007 sert à
+  -- FERMER deux trous, pas à ouvrir des droits — et 008, qui suit
+  -- immédiatement, redéfinit cette fonction sur la vraie matrice.
   select exists (
     select 1 from public.profiles
-    where id = uid and role = 'admin'
+    where id = uid and role::text = 'admin'
   );
 $$;
 

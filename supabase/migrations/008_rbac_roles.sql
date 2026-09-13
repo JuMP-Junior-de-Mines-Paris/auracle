@@ -173,6 +173,29 @@ on conflict do nothing;
 drop function if exists public.set_member_role(uuid, user_role);
 drop function if exists public.current_user_role();
 
+-- Postgres refuse de changer le type d'une colonne dont dépend une policy.
+-- « contacts: admin delete » (schema.sql) lit profiles.role ; elle doit
+-- sauter d'abord. 009 la remplace par un test sur has_perm('contacts.delete').
+-- Entre les deux, contacts n'a plus de policy DELETE, donc plus personne ne
+-- supprime de contact — un manque de droits, jamais un excès.
+drop policy if exists "contacts: admin delete" on public.contacts;
+
+-- Si une AUTRE policy dépend encore de la colonne, on s'arrête en la
+-- nommant plutôt que de laisser Postgres répondre par un 0A000 obscur.
+do $$
+declare restantes text;
+begin
+  select string_agg(format('%s.%s', tablename, policyname), ', ')
+    into restantes
+  from pg_policies
+  where schemaname = 'public'
+    and (coalesce(qual, '') || ' ' || coalesce(with_check, '')) ~ 'profiles\.role';
+
+  if restantes is not null then
+    raise exception E'Ces policies dépendent encore de profiles.role et empêchent le changement de type : %.\nSupprimez-les (elles seront recréées en 009) avant de rejouer.', restantes;
+  end if;
+end $$;
+
 alter table public.profiles alter column role drop default;
 alter table public.profiles alter column role type text using role::text;
 
