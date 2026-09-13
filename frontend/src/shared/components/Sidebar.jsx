@@ -13,6 +13,7 @@ const NAV_SECTIONS = [
       { to: '/missions',     icon: 'briefcase', label: 'Missions' },
       { to: '/mes-missions', icon: 'award',     label: 'Mes missions' },
       { to: '/taches',       icon: 'check',     label: 'Tâches' },
+      { to: '/carnets',      icon: 'book',      label: 'Carnets' },
     ],
   },
   {

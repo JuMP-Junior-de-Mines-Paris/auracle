@@ -17,6 +17,8 @@ import AdminPage from './features/admin/pages/AdminPage'
 import RoleRoute from './shared/components/RoleRoute'
 import CampaignPage from './features/directory/pages/CampaignPage'
 import SettingsPage from './features/settings/pages/SettingsPage'
+import NotebooksPage from './features/notebooks/pages/NotebooksPage'
+import NotebookPage from './features/notebooks/pages/NotebookPage'
 import { ToastProvider } from './shared/components/ToastProvider'
 
 function Protected({ children }) {
@@ -42,6 +44,8 @@ export default function App() {
           <Route path="/annuaire/listes/:id" element={<Protected><CampaignPage /></Protected>} />
           <Route path="/annuaire/relances" element={<Protected><FollowupsPage /></Protected>} />
           <Route path="/taches" element={<Protected><TasksPage /></Protected>} />
+          <Route path="/carnets" element={<Protected><NotebooksPage /></Protected>} />
+          <Route path="/carnets/:id" element={<Protected><NotebookPage /></Protected>} />
           <Route path="/membres" element={<Protected><MembersPage /></Protected>} />
           <Route path="/admin" element={<Protected><RoleRoute perm={['members.set_role', 'permissions.manage', 'audit.read']}><AdminPage /></RoleRoute></Protected>} />
           <Route path="/missions" element={<Protected><MissionsPage /></Protected>} />

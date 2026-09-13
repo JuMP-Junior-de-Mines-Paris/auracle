@@ -23,13 +23,15 @@ export const taskPriority = c => PRIORITIES.find(p => p.code === c) ?? PRIORITIE
 const SELECT = '*, assignee:profiles!assigned_to(prenom, nom), mission:missions(title)'
 
 /**
- * Tâches, filtrées par mission ou par responsable.
+ * Tâches, filtrées par mission, par carnet ou par responsable.
  *
- * `scope` vaut { missionId } pour l'onglet d'une mission, { mine: true }
- * pour « Mes tâches », ou {} pour tout voir.
+ * `scope` vaut { missionId } pour l'onglet d'une mission, { notebookId }
+ * pour les points d'un carnet, { mine: true } pour « Mes tâches », ou {}
+ * pour tout voir. Une tâche prise en réunion de bureau remonte donc dans
+ * la liste de la personne, au lieu de rester dans le compte rendu.
  */
 export function useTasks(scope = {}) {
-  const { missionId, mine } = scope
+  const { missionId, mine, notebookId } = scope
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -39,6 +41,7 @@ export function useTasks(scope = {}) {
     let q = supabase.from('tasks').select(SELECT)
 
     if (missionId) q = q.eq('mission_id', missionId)
+    if (notebookId) q = q.eq('notebook_id', notebookId)
     if (mine) {
       const { data: { user } } = await supabase.auth.getUser()
       q = q.eq('assigned_to', user?.id ?? '00000000-0000-0000-0000-000000000000')
@@ -51,7 +54,7 @@ export function useTasks(scope = {}) {
     setError(err ? describeError(err) : null)
     setTasks(err ? [] : (data ?? []))
     setLoading(false)
-  }, [missionId, mine])
+  }, [missionId, mine, notebookId])
 
   useEffect(() => { fetchTasks() }, [fetchTasks])
 
@@ -63,6 +66,7 @@ export function useTasks(scope = {}) {
         title: fields.title.trim(),
         description: fields.description?.trim() || null,
         mission_id: fields.missionId ?? missionId ?? null,
+        notebook_id: fields.notebookId ?? notebookId ?? null,
         assigned_to: fields.assignedTo || null,
         status: fields.status ?? 'a_faire',
         priority: fields.priority ?? 'normale',
