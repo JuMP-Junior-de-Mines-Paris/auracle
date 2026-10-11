@@ -35,7 +35,7 @@ def test_create_member_requires_the_permission():
         patch("app.routers.admin.get_current_user", return_value=MagicMock(id="u1")),
         patch("app.routers.admin.get_user_permissions", return_value={"contacts.write"}),
     ):
-        r = client.post("/admin/members", headers=AUTH, json={
+        r = client.post("/api/admin/members", headers=AUTH, json={
             "email": "a@jump-mines.fr", "prenom": "A", "nom": "B", "role": "chef_de_projet",
         })
     assert r.status_code == 403
@@ -48,7 +48,7 @@ def test_admin_full_is_a_wildcard():
         patch("app.routers.admin.get_user_permissions", return_value={"admin.full"}),
         patch("app.routers.admin.get_supabase_client", return_value=_mock_supabase()),
     ):
-        r = client.post("/admin/members", headers=AUTH, json={
+        r = client.post("/api/admin/members", headers=AUTH, json={
             "email": "a@jump-mines.fr", "prenom": "A", "nom": "B", "role": "chef_de_projet",
         })
     assert r.status_code == 201
@@ -64,7 +64,7 @@ def test_unknown_role_is_refused_before_creating_the_account():
         patch("app.routers.admin.get_user_permissions", return_value={"members.create"}),
         patch("app.routers.admin.get_supabase_client", return_value=sb),
     ):
-        r = client.post("/admin/members", headers=AUTH, json={
+        r = client.post("/api/admin/members", headers=AUTH, json={
             "email": "a@jump-mines.fr", "prenom": "A", "nom": "B", "role": "respo_licornes",
         })
     assert r.status_code == 422
@@ -78,7 +78,7 @@ def test_cannot_deactivate_yourself():
         patch("app.routers.admin.get_user_permissions", return_value={"admin.full"}),
         patch("app.routers.admin.get_supabase_client", return_value=_mock_supabase()),
     ):
-        r = client.post("/admin/members/u1/deactivate", headers=AUTH)
+        r = client.post("/api/admin/members/u1/deactivate", headers=AUTH)
     assert r.status_code == 422
 
 
@@ -89,7 +89,7 @@ def test_deactivate_bans_rather_than_deletes():
         patch("app.routers.admin.get_user_permissions", return_value={"members.deactivate"}),
         patch("app.routers.admin.get_supabase_client", return_value=sb),
     ):
-        r = client.post("/admin/members/u2/deactivate", headers=AUTH)
+        r = client.post("/api/admin/members/u2/deactivate", headers=AUTH)
     assert r.status_code == 204
     sb.auth.admin.delete_user.assert_not_called()
     args = sb.auth.admin.update_user_by_id.call_args[0]

@@ -55,7 +55,7 @@ def test_ingest_ce_returns_correct_chunk_count():
 
         client = TestClient(_make_app())
         response = client.post(
-            "/rag/ingest-ce",
+            "/api/rag/ingest-ce",
             json={"ce_id": CE_ID},
             headers={"Authorization": "Bearer test-token"},
         )
@@ -78,7 +78,7 @@ def test_ingest_ce_calls_embed_with_all_texts():
 
         client = TestClient(_make_app())
         client.post(
-            "/rag/ingest-ce",
+            "/api/rag/ingest-ce",
             json={"ce_id": CE_ID},
             headers={"Authorization": "Bearer test-token"},
         )
@@ -100,7 +100,7 @@ def test_ingest_ce_returns_404_for_missing_ce():
 
         client = TestClient(_make_app())
         response = client.post(
-            "/rag/ingest-ce",
+            "/api/rag/ingest-ce",
             json={"ce_id": str(uuid.uuid4())},
             headers={"Authorization": "Bearer test-token"},
         )
@@ -121,7 +121,7 @@ def test_ingest_ce_returns_422_when_ce_data_empty():
 
         client = TestClient(_make_app())
         response = client.post(
-            "/rag/ingest-ce",
+            "/api/rag/ingest-ce",
             json={"ce_id": CE_ID},
             headers={"Authorization": "Bearer test-token"},
         )
