@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Icon } from '../../../shared/lib/icons'
 import { useAuth } from '../../auth/hooks/useAuth'
+import { usePermissions } from '../../auth/hooks/usePermissions'
 import { useMembers } from '../../members/hooks/useMembers'
 import { useMissionDetail } from '../hooks/useMissionDetail'
 import { StatusBadge } from './MissionsPage'
@@ -9,12 +10,16 @@ import MissionForm from '../components/MissionForm'
 import MilestoneList from '../components/MilestoneList'
 import MeetingLog from '../components/MeetingLog'
 import TeamPanel from '../components/TeamPanel'
+import { TaskList } from '../../tasks/pages/TasksPage'
+import NotesPanel from '../../../shared/components/NotesPanel'
 
 const TABS = [
   { id: 'overview', label: 'Aperçu' },
   { id: 'team', label: 'Équipe' },
   { id: 'milestones', label: 'Jalons' },
+  { id: 'tasks', label: 'Tâches' },
   { id: 'meetings', label: 'Réunions' },
+  { id: 'notes', label: 'Notes' },
 ]
 
 function Field({ label, value }) {
@@ -30,6 +35,7 @@ export default function MissionDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { can } = usePermissions()
   const { members, loading: loadingMembers } = useMembers()
   const { mission, team, milestones, meetings, loading, updateMission, addTeamMember, removeTeamMember, createMilestone, toggleMilestone, deleteMilestone, createMeeting, deleteMeeting } = useMissionDetail(id)
   const [activeTab, setActiveTab] = useState('overview')
@@ -38,7 +44,11 @@ export default function MissionDetailPage() {
   if (loading) return <div className="px-8 py-6" style={{ color: 'var(--ink-3)', fontSize: 14 }}>Chargement…</div>
   if (!mission) return <div className="px-8 py-6" style={{ color: 'var(--ink-3)', fontSize: 14 }}>Mission introuvable.</div>
 
-  const canEdit = user && (user.id === mission.created_by || user.id === mission.chef_de_projet)
+  // Aligné sur can_edit_mission() en base : créateur, chef de projet, ou
+  // détenteur de missions.edit_all.
+  const canEdit = can('missions.edit_all')
+    || (user && (user.id === mission.created_by || user.id === mission.chef_de_projet))
+  const canSeeBudget = can('missions.budget_read') || canEdit
 
   return (
     <div className="px-8 py-6 fade-up">
@@ -91,7 +101,7 @@ export default function MissionDetailPage() {
           <Field label="Client" value={mission.client_name} />
           <Field label="Contact client" value={mission.client_contact_name} />
           <Field label="Email client" value={mission.client_contact_email} />
-          <Field label="Budget" value={mission.budget ? `${Number(mission.budget).toLocaleString('fr-FR')} €` : null} />
+          {canSeeBudget && <Field label="Budget" value={mission.budget ? `${Number(mission.budget).toLocaleString('fr-FR')} €` : null} />}
           <Field label="Début" value={mission.start_date ? new Date(mission.start_date + 'T00:00:00').toLocaleDateString('fr-FR') : null} />
           <Field label="Fin" value={mission.end_date ? new Date(mission.end_date + 'T00:00:00').toLocaleDateString('fr-FR') : null} />
           <Field label="Chef de Projet" value={mission.chef ? `${mission.chef.prenom} ${mission.chef.nom}` : null} />
@@ -113,15 +123,25 @@ export default function MissionDetailPage() {
           onToggle={toggleMilestone}
           onDelete={deleteMilestone}
           onCreate={createMilestone}
+          canManage={canEdit}
         />
       )}
+
+      {activeTab === 'tasks' && <TaskList missionId={id} />}
 
       {activeTab === 'meetings' && (
         <MeetingLog
           meetings={meetings}
           onDelete={deleteMeeting}
           onCreate={createMeeting}
+          canManage={canEdit}
         />
+      )}
+
+      {activeTab === 'notes' && (
+        <div style={{ maxWidth: 620 }}>
+          <NotesPanel entityType="mission" entityId={id} placeholder="Compte rendu, point de vigilance, décision…" />
+        </div>
       )}
 
       {showEdit && (

@@ -1,7 +1,7 @@
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routers import rag
+from app.routers import rag, admin
 
 app = FastAPI(title="JuMP Oracle API", version="1.0.0")
 
@@ -13,9 +13,16 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization", "Accept"],
 )
 
-app.include_router(rag.router, prefix="/rag", tags=["rag"])
+# Vercel forwards /api/* to this service with the prefix intact, so every
+# route lives under /api.
+api = APIRouter(prefix="/api")
+api.include_router(rag.router, prefix="/rag", tags=["rag"])
+api.include_router(admin.router, prefix="/admin", tags=["admin"])
 
 
-@app.get("/healthz")
+@api.get("/healthz")
 async def health():
     return {"status": "ok"}
+
+
+app.include_router(api)

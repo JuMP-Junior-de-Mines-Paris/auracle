@@ -1,29 +1,41 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { Icon } from '../../shared/lib/icons'
+import { roleMeta } from '../../shared/lib/roles'
 import { useAuth } from '../../features/auth/hooks/useAuth'
+import { usePermissions } from '../../features/auth/hooks/usePermissions'
 
+// Douze entrées au lieu de treize : « Mes missions » n'était qu'un filtre
+// de Missions et le duplique — Tâches fait déjà cela avec un bouton. La
+// liste des membres, elle, existait aussi comme onglet d'Administration ;
+// c'est désormais un seul écran, qui laisse éditer le rôle à qui en a le
+// droit plutôt que d'avoir deux pages pour vingt-et-une personnes.
 const NAV_SECTIONS = [
   {
     title: 'Pilotage',
     items: [
-      { to: '/dashboard',    icon: 'home',      label: 'Tableau de bord' },
-      { to: '/missions',     icon: 'briefcase', label: 'Missions' },
-      { to: '/mes-missions', icon: 'award',     label: 'Mes missions' },
+      { to: '/dashboard', icon: 'home',      label: 'Accueil' },
+      { to: '/taches',    icon: 'check',     label: 'Tâches' },
+      { to: '/missions',  icon: 'briefcase', label: 'Missions' },
+      { to: '/carnets',   icon: 'book',      label: 'Carnets' },
     ],
   },
   {
     title: 'Prospection',
     items: [
-      { to: '/annuaire',        icon: 'users',    label: 'Annuaire' },
-      { to: '/annuaire/listes', icon: 'bookmark', label: 'Listes' },
+      { to: '/annuaire',             icon: 'users',    label: 'Annuaire' },
+      { to: '/annuaire/segments',    icon: 'filter',   label: 'Segments' },
+      { to: '/annuaire/listes',      icon: 'bookmark', label: 'Campagnes' },
+      { to: '/annuaire/relances',    icon: 'bell',     label: 'Relances' },
+      { to: '/annuaire/progression', icon: 'trending', label: 'Progression' },
     ],
   },
   {
-    title: 'Administration',
+    title: 'Réglages',
     items: [
       { to: '/membres',  icon: 'user',     label: 'Membres' },
-      { to: '/settings', icon: 'settings', label: 'Paramètres' },
+      { to: '/settings', icon: 'settings', label: 'Mon profil' },
+      { to: '/admin',    icon: 'lock',     label: 'Administration', perm: ['members.set_role', 'permissions.manage', 'audit.read'] },
     ],
   },
 ]
@@ -31,6 +43,7 @@ const NAV_SECTIONS = [
 export default function Sidebar() {
   const [narrow, setNarrow] = useState(false)
   const { user, role, logout } = useAuth()
+  const { can } = usePermissions()
   const navigate = useNavigate()
   const initials = (user?.email?.[0] ?? 'U').toUpperCase()
 
@@ -75,7 +88,7 @@ export default function Sidebar() {
               >
                 {section.title}
               </div>
-              {section.items.map(item => (
+              {section.items.filter(item => can(item.perm)).map(item => (
                 <NavLink
                   key={item.to}
                   to={item.to}
@@ -104,8 +117,8 @@ export default function Sidebar() {
               <span style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {user?.email}
               </span>
-              <span style={{ fontSize: 11, color: 'var(--ink-3)', textTransform: 'capitalize' }}>
-                {role?.replace('_', ' ')}
+              <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>
+                {roleMeta(role).short}
               </span>
             </div>
             <button

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Icon } from '../../../shared/lib/icons'
 
-export default function MeetingLog({ meetings, onDelete, onCreate }) {
+export default function MeetingLog({ meetings, onDelete, onCreate, canManage = true }) {
   const [open, setOpen] = useState(false)
   const [fields, setFields] = useState({ title: '', date: '', notes: '', attendees: '' })
   const [saving, setSaving] = useState(false)
@@ -33,12 +33,14 @@ export default function MeetingLog({ meetings, onDelete, onCreate }) {
       )}
       {meetings.map(mt => (
         <div key={mt.id} className="card" style={{ padding: 16, position: 'relative' }}>
+          {canManage && (
           <button
             onClick={() => onDelete(mt.id)}
             style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)' }}
           >
             <Icon name="trash" size={13} />
           </button>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <Icon name="calendar" size={14} />
             <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>
@@ -55,7 +57,7 @@ export default function MeetingLog({ meetings, onDelete, onCreate }) {
         </div>
       ))}
 
-      {!open ? (
+      {!canManage ? null : !open ? (
         <button className="btn-ghost flex items-center gap-1.5" style={{ alignSelf: 'flex-start' }} onClick={() => setOpen(true)}>
           <Icon name="plus" size={13} /> Ajouter une réunion
         </button>

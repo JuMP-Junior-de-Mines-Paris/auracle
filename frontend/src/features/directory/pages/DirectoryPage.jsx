@@ -1,18 +1,26 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Icon } from '../../../shared/lib/icons'
+import Can from '../../../shared/components/Can'
+import { usePermissions } from '../../auth/hooks/usePermissions'
 import { useContacts } from '../hooks/useContacts'
 import { useContactStats } from '../hooks/useContactStats'
 import { useProspectingLists } from '../hooks/useProspectingLists'
 import ContactDrawer from '../components/ContactDrawer'
 import ContactForm from '../components/ContactForm'
 import ContactStatusBadge from '../components/ContactStatusBadge'
+import ImportCsvModal from '../components/ImportCsvModal'
+import { channelMeta } from '../../../shared/lib/prospect'
+import { useMembers } from '../../members/hooks/useMembers'
 
+// Les codes suivent prospect_statuses (013). On n'affiche pas les neuf
+// statuts en cartes : seuls les jalons que l'équipe regarde au quotidien.
 const KPI_CONFIG = [
-  { key: 'total',      label: 'Total',        color: 'var(--ink)', statusValue: undefined },
-  { key: 'aContacter', label: 'À contacter',  color: '#6b7280',    statusValue: 'à contacter' },
-  { key: 'contacte',   label: 'Contactés',    color: '#1d4ed8',    statusValue: 'contacté' },
-  { key: 'repondu',    label: 'Répondu',      color: '#d97706',    statusValue: 'répondu' },
-  { key: 'travaille',  label: 'Travaillés',   color: '#15803d',    statusValue: 'travaillé' },
+  { key: '__total__',     label: 'Total',         color: 'var(--ink)', statusValue: undefined },
+  { key: 'a_contacter',   label: 'À contacter',   color: '#6b7280',    statusValue: 'a_contacter' },
+  { key: 'contacte',      label: 'Contactés',     color: '#1d4ed8',    statusValue: 'contacte' },
+  { key: 'en_discussion', label: 'En discussion', color: '#b45309',    statusValue: 'en_discussion' },
+  { key: 'converti',      label: 'Convertis',     color: '#15803d',    statusValue: 'converti' },
 ]
 
 function StatCard({ count, label, color, active, onClick }) {
@@ -32,6 +40,42 @@ function StatCard({ count, label, color, active, onClick }) {
       <div style={{ fontSize: 26, fontWeight: 700, color, lineHeight: 1 }}>{count.toLocaleString('fr-FR')}</div>
       <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}>{label}</div>
     </button>
+  )
+}
+
+/**
+ * Qui a démarché ce contact, et quand.
+ *
+ * La donnée vient de contact_interactions.created_by : c'est l'auteur de la
+ * dernière démarche enregistrée, pas le responsable. Les deux diffèrent
+ * souvent — quelqu'un reprend un contact laissé par un autre — et c'est le
+ * premier qu'on veut voir avant d'écrire à son tour.
+ */
+function Demarche({ contact: c, onFiltrer }) {
+  if (!c.last_contact_at) {
+    return <span style={{ fontSize: 12.5, color: 'var(--ink-4)' }}>jamais</span>
+  }
+  const canal = channelMeta(c.last_channel)
+  const autres = c.nb_interactions - 1
+
+  return (
+    <div style={{ lineHeight: 1.3 }}>
+      <button
+        onClick={() => onFiltrer(c.last_contact_by)}
+        title={`Voir tout ce que ${c.last_contact_nom ?? 'cette personne'} a démarché`}
+        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 500, color: 'var(--ember)', textAlign: 'left' }}
+      >
+        {c.last_contact_nom ?? 'Membre supprimé'}
+      </button>
+      <div style={{ fontSize: 11, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <Icon name={canal.icon} size={9} />
+        {new Date(c.last_contact_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: '2-digit' })}
+        {autres > 0 && <span style={{ color: 'var(--ink-4)' }}>· +{autres}</span>}
+      </div>
+      {c.assignee_nom && c.assignee_id !== c.last_contact_by && (
+        <div style={{ fontSize: 10.5, color: 'var(--ink-4)' }}>suivi par {c.assignee_nom}</div>
+      )}
+    </div>
   )
 }
 
@@ -108,6 +152,12 @@ export default function DirectoryPage() {
   const [openContact, setOpenContact] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [editingContact, setEditingContact] = useState(null)
+  const [showImport, setShowImport] = useState(false)
+  // La page Progression renvoie ici avec ?demarche_par=<membre> : le filtre
+  // doit être pris au montage, sinon le lien ne mène nulle part.
+  const [params] = useSearchParams()
+  const [contactedBy, setContactedBy] = useState(params.get('demarche_par'))
+  const [onlyUncontacted, setOnlyUncontacted] = useState(false)
 
   // Bulk action state
   const [showListDropdown, setShowListDropdown] = useState(false)
@@ -116,8 +166,20 @@ export default function DirectoryPage() {
   const [bulkLoading, setBulkLoading] = useState(false)
   const [toast, setToast] = useState(null)
 
-  const { contacts, total, loading, createContact, updateContact, updateStatus } = useContacts({ page, pageSize: 50, query, statusFilter })
+  const { contacts, total, loading, createContact, updateContact, updateStatus, refetch } =
+    useContacts({ page, pageSize: 50, query, statusFilter, contactedBy, onlyUncontacted })
+  const { members } = useMembers()
   const { stats, refetch: refetchStats } = useContactStats()
+  const { can } = usePermissions()
+  const canWrite = can('contacts.write')
+
+  function filtrerParMembre(id) {
+    // Recliquer sur le même membre retire le filtre.
+    setContactedBy(prev => (prev === id ? null : id))
+    setOnlyUncontacted(false)
+    setPage(1)
+    setSelected(new Set())
+  }
 
   function handleKpiClick(statusValue) {
     const next = statusFilter === statusValue ? undefined : statusValue
@@ -220,9 +282,11 @@ export default function DirectoryPage() {
             {total.toLocaleString('fr-FR')} contacts
           </p>
         </div>
-        <button className="btn-ember flex items-center gap-2" onClick={() => setShowForm(true)}>
-          <Icon name="plus" size={14} /> Nouveau contact
-        </button>
+        <Can perm="contacts.write">
+          <button className="btn-ember flex items-center gap-2" onClick={() => setShowForm(true)}>
+            <Icon name="plus" size={14} /> Nouveau contact
+          </button>
+        </Can>
       </div>
 
       {/* KPI row */}
@@ -230,7 +294,7 @@ export default function DirectoryPage() {
         {KPI_CONFIG.map(k => (
           <StatCard
             key={k.key}
-            count={stats[k.key]}
+            count={stats[k.key] ?? 0}
             label={k.label}
             color={k.color}
             active={statusFilter === k.statusValue && k.statusValue !== undefined}
@@ -252,9 +316,46 @@ export default function DirectoryPage() {
               onChange={e => handleSearch(e.target.value)}
             />
           </div>
-          <button className="btn-ghost flex items-center gap-1.5">
-            <Icon name="upload" size={14} /> Importer CSV
+          <Can perm="contacts.import">
+            <button className="btn-ghost flex items-center gap-1.5" onClick={() => setShowImport(true)}>
+              <Icon name="upload" size={14} /> Importer CSV
+            </button>
+          </Can>
+        </div>
+
+        {/* Filtres de démarche — ce qu'on veut savoir avant d'écrire à
+            quelqu'un : est-ce que quelqu'un s'en est déjà occupé ? */}
+        <div className="card p-3 mb-3 flex items-center gap-2 flex-wrap">
+          <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--ink-4)' }}>
+            Démarché par
+          </span>
+          <select
+            className="field"
+            style={{ fontSize: 13, padding: '5px 8px', width: 190 }}
+            value={contactedBy ?? ''}
+            onChange={e => { setContactedBy(e.target.value || null); setOnlyUncontacted(false); setPage(1) }}
+          >
+            <option value="">n'importe qui</option>
+            {members.map(m => <option key={m.id} value={m.id}>{m.prenom} {m.nom}</option>)}
+          </select>
+
+          <button
+            className={onlyUncontacted ? 'btn-ember' : 'btn-ghost'}
+            style={{ fontSize: 13 }}
+            onClick={() => { setOnlyUncontacted(v => !v); setContactedBy(null); setPage(1) }}
+          >
+            Jamais démarchés
           </button>
+
+          {(contactedBy || onlyUncontacted || statusFilter !== undefined) && (
+            <button
+              className="btn-ghost flex items-center gap-1.5"
+              style={{ fontSize: 12.5, marginLeft: 'auto' }}
+              onClick={() => { setContactedBy(null); setOnlyUncontacted(false); setStatusFilter(undefined); setPage(1) }}
+            >
+              <Icon name="x" size={12} /> Tout afficher
+            </button>
+          )}
         </div>
 
         {/* Selection bar */}
@@ -333,8 +434,8 @@ export default function DirectoryPage() {
                 <th>Entreprise / Poste</th>
                 <th>Localisation</th>
                 <th>Diplôme · Année</th>
-                <th>Email</th>
-                <th>Téléphone</th>
+                <th>Coordonnées</th>
+                <th>Démarché par</th>
                 <th>Statut</th>
               </tr>
             </thead>
@@ -374,18 +475,25 @@ export default function DirectoryPage() {
                       {!c.diplomes && !c.annee_obtention_diplome && <span style={{ color: 'var(--ink-4)' }}>—</span>}
                     </div>
                   </td>
-                  <td style={{ fontSize: 13, color: 'var(--ink-2)' }}>
+                  <td style={{ fontSize: 13, color: 'var(--ink-2)' }} onClick={e => e.stopPropagation()}>
+                    {/* Par ordre de disponibilité réelle : l'annuaire n'a
+                        aucun e-mail ni téléphone, mais 72 % de LinkedIn. */}
                     {c.email ? (
-                      <a href={`mailto:${c.email}`} style={{ color: 'var(--ember)' }} onClick={e => e.stopPropagation()}>{c.email}</a>
-                    ) : '—'}
-                  </td>
-                  <td style={{ fontSize: 13, color: 'var(--ink-2)' }}>
-                    {c.telephone ? (
-                      <a href={`tel:${c.telephone}`} style={{ color: 'var(--ink-2)' }} onClick={e => e.stopPropagation()}>{c.telephone}</a>
-                    ) : '—'}
+                      <a href={`mailto:${c.email}`} style={{ color: 'var(--ember)' }}>{c.email}</a>
+                    ) : c.telephone ? (
+                      <a href={`tel:${c.telephone}`} style={{ color: 'var(--ink-2)' }}>{c.telephone}</a>
+                    ) : c.linkedin ? (
+                      <a href={c.linkedin} target="_blank" rel="noopener noreferrer"
+                         className="flex items-center gap-1" style={{ color: 'var(--ember)', fontSize: 12.5 }}>
+                        <Icon name="link" size={11} /> LinkedIn
+                      </a>
+                    ) : <span style={{ color: 'var(--ink-4)' }}>—</span>}
                   </td>
                   <td onClick={e => e.stopPropagation()}>
-                    <ContactStatusBadge status={c.status} onChange={status => handleStatusChange(c.id, status)} />
+                    <Demarche contact={c} onFiltrer={filtrerParMembre} />
+                  </td>
+                  <td onClick={e => e.stopPropagation()}>
+                    <ContactStatusBadge status={c.status} onChange={canWrite ? status => handleStatusChange(c.id, status) : undefined} />
                   </td>
                 </tr>
               ))}
@@ -444,8 +552,15 @@ export default function DirectoryPage() {
           onClose={() => setOpenContact(null)}
           onAddToList={addContactToList}
           onCreateList={createList}
-          onStatusChange={status => handleStatusChange(openContact.id, status)}
-          onEdit={() => { setEditingContact(openContact); setOpenContact(null) }}
+          onStatusChange={canWrite ? status => handleStatusChange(openContact.id, status) : undefined}
+          onEdit={canWrite ? () => { setEditingContact(openContact); setOpenContact(null) } : undefined}
+        />
+      )}
+
+      {showImport && (
+        <ImportCsvModal
+          onClose={() => setShowImport(false)}
+          onDone={() => { refetch(); refetchStats() }}
         />
       )}
 

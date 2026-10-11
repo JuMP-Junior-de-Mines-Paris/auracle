@@ -49,7 +49,7 @@ Users can select contacts and save them into named **Prospecting Lists**.
 ### Backend (FastAPI on Railway)
 - Local dev: `cd backend && conda activate jump-oracle && uvicorn app.main:app --reload`
 - Production: deploy to Railway (see deployment instructions below)
-- Health check: `GET /healthz` → `{"status":"ok"}`
+- Health check: `GET /api/healthz` → `{"status":"ok"}`
 - Conda env: `jump-oracle` (Python 3.11)
 - Run tests: `conda run -n jump-oracle pytest -v` from `backend/`
 
@@ -63,7 +63,7 @@ Users can select contacts and save them into named **Prospecting Lists**.
    - `ANTHROPIC_API_KEY` — your Anthropic key
    - `FRONTEND_URL` — your Vercel app URL (e.g. `https://your-app.vercel.app`)
 4. Railway detects Python via `requirements.txt` and uses `Procfile` as the start command
-5. After deploy: `curl https://your-app.up.railway.app/healthz` → `{"status":"ok"}`
+5. After deploy: `curl https://your-app.up.railway.app/api/healthz` → `{"status":"ok"}`
 6. Update this file with the live Railway URL once deployed
 
 ### One-time scripts (run after Railway is up and DB migration is applied)

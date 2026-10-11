@@ -1,17 +1,21 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../../shared/lib/supabase'
+import { describeError } from '../../../shared/lib/errors'
 
 export function useMissions() {
   const [missions, setMissions] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   const fetchMissions = useCallback(async () => {
     setLoading(true)
-    const { data, error } = await supabase
+    const { data, error: err } = await supabase
       .from('missions')
       .select('*, chef:profiles!chef_de_projet(prenom, nom)')
       .order('created_at', { ascending: false })
-    if (!error) setMissions(data ?? [])
+    // Un refus RLS renvoyait un tableau vide, indiscernable d'une base vide.
+    setError(err ? describeError(err) : null)
+    setMissions(err ? [] : (data ?? []))
     setLoading(false)
   }, [])
 
@@ -41,5 +45,5 @@ export function useMissions() {
     return data
   }
 
-  return { missions, loading, createMission, updateMission, refetch: fetchMissions }
+  return { missions, loading, error, createMission, updateMission, refetch: fetchMissions }
 }

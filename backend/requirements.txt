@@ -1,6 +1,6 @@
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
-pydantic>=2.11.7,<3.0.0
+pydantic[email]>=2.11.7,<3.0.0
 pydantic-settings>=2.7.0,<3.0.0
 supabase==2.30.0
 voyageai>=0.3.3

@@ -44,6 +44,7 @@ def test_ingest_ce_returns_correct_chunk_count():
     # MOCK_CE has: contexte + resume_cdc + detail_cdc + 2 phases = 5 chunks
     with (
         patch("app.routers.rag.get_current_user", return_value=MagicMock(id="u1")),
+        patch("app.routers.rag.get_user_permissions", return_value={"ce.write"}),
         patch("app.routers.rag.get_supabase_client") as mock_db,
         patch("app.routers.rag.embed_texts") as mock_embed,
     ):
@@ -54,7 +55,7 @@ def test_ingest_ce_returns_correct_chunk_count():
 
         client = TestClient(_make_app())
         response = client.post(
-            "/rag/ingest-ce",
+            "/api/rag/ingest-ce",
             json={"ce_id": CE_ID},
             headers={"Authorization": "Bearer test-token"},
         )
@@ -66,6 +67,7 @@ def test_ingest_ce_returns_correct_chunk_count():
 def test_ingest_ce_calls_embed_with_all_texts():
     with (
         patch("app.routers.rag.get_current_user", return_value=MagicMock(id="u1")),
+        patch("app.routers.rag.get_user_permissions", return_value={"ce.write"}),
         patch("app.routers.rag.get_supabase_client") as mock_db,
         patch("app.routers.rag.embed_texts") as mock_embed,
     ):
@@ -76,7 +78,7 @@ def test_ingest_ce_calls_embed_with_all_texts():
 
         client = TestClient(_make_app())
         client.post(
-            "/rag/ingest-ce",
+            "/api/rag/ingest-ce",
             json={"ce_id": CE_ID},
             headers={"Authorization": "Bearer test-token"},
         )
@@ -89,6 +91,7 @@ def test_ingest_ce_calls_embed_with_all_texts():
 def test_ingest_ce_returns_404_for_missing_ce():
     with (
         patch("app.routers.rag.get_current_user", return_value=MagicMock(id="u1")),
+        patch("app.routers.rag.get_user_permissions", return_value={"ce.write"}),
         patch("app.routers.rag.get_supabase_client") as mock_db,
     ):
         mock_supabase = MagicMock()
@@ -97,7 +100,7 @@ def test_ingest_ce_returns_404_for_missing_ce():
 
         client = TestClient(_make_app())
         response = client.post(
-            "/rag/ingest-ce",
+            "/api/rag/ingest-ce",
             json={"ce_id": str(uuid.uuid4())},
             headers={"Authorization": "Bearer test-token"},
         )
@@ -109,6 +112,7 @@ def test_ingest_ce_returns_422_when_ce_data_empty():
     empty_ce = {**MOCK_CE, "ce_data": {}}
     with (
         patch("app.routers.rag.get_current_user", return_value=MagicMock(id="u1")),
+        patch("app.routers.rag.get_user_permissions", return_value={"ce.write"}),
         patch("app.routers.rag.get_supabase_client") as mock_db,
     ):
         mock_supabase = MagicMock()
@@ -117,7 +121,7 @@ def test_ingest_ce_returns_422_when_ce_data_empty():
 
         client = TestClient(_make_app())
         response = client.post(
-            "/rag/ingest-ce",
+            "/api/rag/ingest-ce",
             json={"ce_id": CE_ID},
             headers={"Authorization": "Bearer test-token"},
         )

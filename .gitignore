@@ -1,3 +1,8 @@
 .superpowers/
 .worktrees/
-.env
+.envsupabase/snapshots/
+
+# Instantanés de données de production — ne jamais commiter
+supabase/snapshots/
+frontend/.env
+backend/.env

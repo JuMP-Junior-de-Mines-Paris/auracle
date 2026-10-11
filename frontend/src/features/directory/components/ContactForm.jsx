@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '../../../shared/lib/icons'
+import { useDuplicateCheck } from '../hooks/useDuplicates'
 
 const FIELDS = [
   { name: 'prenom',                  label: 'Prénom',         type: 'text',   required: true },
@@ -31,6 +32,11 @@ export default function ContactForm({ contact, onClose, onSubmit }) {
   const [form, setForm] = useState(() => initForm(contact))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+
+  // Prévenir AVANT l'enregistrement : un doublon évité coûte moins cher
+  // qu'un doublon fusionné. Les contraintes d'unicité de la migration 012
+  // attrapent l'égalité exacte ; ceci attrape les variantes d'orthographe.
+  const { candidates, checking } = useDuplicateCheck({ ...form, id: contact?.id })
 
   function handleChange(e, field) {
     const value = field.type === 'number'
@@ -99,6 +105,29 @@ export default function ContactForm({ contact, onClose, onSubmit }) {
               </div>
             ))}
           </div>
+
+          {candidates.length > 0 && (
+            <div style={{ background: 'var(--maj-bg, #f7efdc)', border: '1px solid #e2ce9e', borderRadius: 10, padding: '10px 12px' }}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: '#8a5d13', marginBottom: 6 }}>
+                {candidates.length} contact{candidates.length > 1 ? 's ressemblent' : ' ressemble'} à celui-ci
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {candidates.slice(0, 4).map(c => (
+                  <div key={c.id} style={{ fontSize: 12.5, color: 'var(--ink-2)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <b>{c.prenom} {c.nom?.toUpperCase()}</b>
+                    <span style={{ color: 'var(--ink-3)' }}>{c.entreprise_actuelle || '—'}</span>
+                    <span style={{ color: '#8a5d13' }}>· {c.motif}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 6 }}>
+                Vous pouvez enregistrer quand même si c’est bien quelqu’un d’autre.
+              </div>
+            </div>
+          )}
+          {checking && candidates.length === 0 && (
+            <div style={{ fontSize: 12, color: 'var(--ink-4)' }}>Recherche de doublons…</div>
+          )}
 
           {error && <p style={{ fontSize: 13, color: '#dc2626' }}>{error}</p>}
 

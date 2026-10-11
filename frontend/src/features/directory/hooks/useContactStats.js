@@ -1,24 +1,21 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../../shared/lib/supabase'
 
+/**
+ * Compteurs par statut de l'annuaire.
+ *
+ * Une seule RPC au lieu des cinq requêtes `count` d'origine, qui
+ * parcouraient la table entière chacune (F-21). La forme renvoyée est
+ * { <code_statut>: n, __null__: n, __total__: n }.
+ */
 export function useContactStats() {
-  const [stats, setStats] = useState({ total: 0, aContacter: 0, contacte: 0, repondu: 0, travaille: 0 })
+  const [stats, setStats] = useState({ __total__: 0 })
 
   const refetch = useCallback(async () => {
-    const [t, a, c, r, tr] = await Promise.all([
-      supabase.from('contacts').select('*', { count: 'exact', head: true }),
-      supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('status', 'à contacter'),
-      supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('status', 'contacté'),
-      supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('status', 'répondu'),
-      supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('status', 'travaillé'),
-    ])
-    setStats({
-      total:      t.count  ?? 0,
-      aContacter: a.count  ?? 0,
-      contacte:   c.count  ?? 0,
-      repondu:    r.count  ?? 0,
-      travaille:  tr.count ?? 0,
-    })
+    const { data, error } = await supabase.rpc('contact_status_counts')
+    // Sans la RPC (migration 011 non appliquée), on garde des compteurs à
+    // zéro plutôt que de faire planter l'annuaire.
+    setStats(error ? { __total__: 0 } : (data ?? { __total__: 0 }))
   }, [])
 
   useEffect(() => { refetch() }, [refetch])
