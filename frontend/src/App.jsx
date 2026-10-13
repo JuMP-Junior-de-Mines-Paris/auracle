@@ -20,6 +20,7 @@ import CampaignPage from './features/directory/pages/CampaignPage'
 import SettingsPage from './features/settings/pages/SettingsPage'
 import NotebooksPage from './features/notebooks/pages/NotebooksPage'
 import NotebookPage from './features/notebooks/pages/NotebookPage'
+import CePage from './features/ce/pages/CePage'
 import { ToastProvider } from './shared/components/ToastProvider'
 
 function Protected({ children }) {
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/annuaire/relances" element={<Protected><FollowupsPage /></Protected>} />
           <Route path="/annuaire/progression" element={<Protected><ProgressionPage /></Protected>} />
           <Route path="/taches" element={<Protected><TasksPage /></Protected>} />
+          <Route path="/conventions" element={<Protected><CePage /></Protected>} />
           <Route path="/carnets" element={<Protected><NotebooksPage /></Protected>} />
           <Route path="/carnets/:id" element={<Protected><NotebookPage /></Protected>} />
           <Route path="/membres" element={<Protected><MembersPage /></Protected>} />

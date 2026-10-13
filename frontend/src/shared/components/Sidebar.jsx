@@ -18,6 +18,7 @@ const NAV_SECTIONS = [
       { to: '/taches',    icon: 'check',     label: 'Tâches' },
       { to: '/missions',  icon: 'briefcase', label: 'Missions' },
       { to: '/carnets',   icon: 'book',      label: 'Carnets' },
+      { to: '/conventions', icon: 'edit',   label: 'Conventions' },
     ],
   },
   {

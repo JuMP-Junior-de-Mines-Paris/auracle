@@ -6,3 +6,6 @@
 supabase/snapshots/
 frontend/.env
 backend/.env
+
+# Contrats d'étude clients + identifiants : jamais dans git
+/ce/

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routers import rag, admin
+from app.routers import rag, admin, ce, ai_keys
 
 app = FastAPI(title="JuMP Oracle API", version="1.0.0")
 
@@ -18,6 +18,8 @@ app.add_middleware(
 api = APIRouter(prefix="/api")
 api.include_router(rag.router, prefix="/rag", tags=["rag"])
 api.include_router(admin.router, prefix="/admin", tags=["admin"])
+api.include_router(ce.router, prefix="/ce", tags=["ce"])
+api.include_router(ai_keys.router, prefix="/ai-key", tags=["ai"])
 
 
 @api.get("/healthz")

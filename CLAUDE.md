@@ -53,6 +53,22 @@ Users can select contacts and save them into named **Prospecting Lists**.
 - Conda env: `jump-oracle` (Python 3.11)
 - Run tests: `conda run -n jump-oracle pytest -v` from `backend/`
 
+### Générateur de convention d'étude (CE)
+Formulaire React (`/conventions`, ouvert à tout membre connecté : aucune permission requise) → `POST /api/ce/export-docx` → .docx rempli à partir du vrai modèle JuMP.
+- Modèle Word : `backend/app/templates/convention_etude.docx` (le modifier dans Word suffit ; les `{placeholders}` et la structure sont lus par `backend/app/services/ce_docx.py`)
+- Données : `ce_schema.py` (validation, règles métier : JEH entre 80 et 450 € HT), `ce_budget.py` (calculs en Decimal)
+- Variables globales de JuMP (président = César Colombo, prix du JEH 300 €, TVA, validité, acompte) : `backend/app/services/ce_globals.py`, exposées par `GET /api/ce/globals`. Le président n'est jamais saisi : le serveur l'applique. Changer de président = modifier ce seul fichier.
+- Budget : le total HT est la somme des budgets de phase (pas de frais de structure). Chaque intervenant a un prénom et un nom.
+- Tout texte reçu est nettoyé (`nettoyer` dans `ce_schema.py`) : un copier-coller depuis Word/PDF avec caractères de contrôle ferait sinon échouer la génération. Les accolades saisies par l'utilisateur restent littérales (`_shield` dans `ce_docx.py`).
+- Un texte `origin: "ai"` non relu bloque l'export côté serveur ; une section obligatoire vide aussi, sauf `?brouillon=true`
+- Rédaction par IA : `POST /api/ce/generate` (`ce_generate.py`, `llm.py`). Le chef de projet fournit ses notes ; un seul appel à Gemini rédige contexte, existant, résumé du CDC, CDC et description de chaque phase. La réponse donne `textes` et `reviews` indexés par chemin CEData (`phases.0.description`), déjà marqués `origin: "ai"`, non relus. Le modèle n'écrit jamais de prix ni de JEH, et un montant absent des notes est signalé dans `warnings`.
+  - Clés : pas de clé du serveur. Chaque membre saisit sa clé Gemini (créée sur aistudio.google.com/apikey : l'abonnement Gemini Pro n'en fournit pas) dans Paramètres, via `GET/PUT/DELETE /api/ai-key` (`routers/ai_keys.py`). Elle est chiffrée (Fernet, secret `AI_KEYS_SECRET`) dans `user_ai_keys` (migration 022, sans aucune policy : seul le backend la lit) et n'est jamais renvoyée au navigateur. Sans clé, `/generate` répond 409 `no_ai_key`. Le modèle se règle par `GEMINI_MODEL`.
+  - Confidentialité : les notes partent chez Google sous le compte du membre. D'après les conditions de Google, en UE/UK/Suisse le quota gratuit suit les règles du payant (pas d'entraînement). Par prudence `ce_anonymize.py` remplace société et contacts par des jetons (`[CLIENT]`…) et supprime emails, téléphones et SIRET avant l'envoi, puis remet les noms dans le texte reçu. Un nom non déclaré dans les notes n'est pas détecté.
+- Dev : lancer le backend (`uvicorn app.main:app --reload`, port 8000) ; le proxy Vite envoie `/api` vers lui
+  - Sans `backend/.env` (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY) le backend ne démarre pas (`AI_KEYS_SECRET` n'est exigé que pour enregistrer des clés Gemini), et le proxy Vite répond alors 500 sans corps : l'interface affiche « Le backend est-il lancé ? ».
+  - Dépendances : `python3 -m venv backend/.venv && backend/.venv/bin/pip install -r backend/requirements.txt`, puis `cd backend && .venv/bin/python -m uvicorn app.main:app --reload`.
+- Le dossier `ce/` à la racine (conventions clients, identifiants) est ignoré par git : ne jamais le committer
+
 ### Railway Deployment (manual steps)
 1. Go to railway.app → New Project → Deploy from GitHub repo
 2. Select the `jump-oracle` repository; set **Root Directory** to `backend`

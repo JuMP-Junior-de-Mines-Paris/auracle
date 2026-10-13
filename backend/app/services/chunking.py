@@ -102,12 +102,13 @@ def extract_chunks_from_ce_data(ce_data: dict) -> list[Chunk]:
     if resume_cdc := ce_data.get("resume_cdc"):
         chunks.append(Chunk(section="definition", text=resume_cdc))
 
-    if detail_cdc := ce_data.get("detail_cdc"):
+    # CEData (formulaire) dit « cdc » et « nom » ; les imports de l'ancien script disent « detail_cdc » et « name ».
+    if detail_cdc := ce_data.get("cdc") or ce_data.get("detail_cdc"):
         chunks.append(Chunk(section="cdc", text=detail_cdc))
 
     for i, phase in enumerate(ce_data.get("phases", []), start=1):
         desc = phase.get("description", "").strip()
-        name = phase.get("name", "").strip()
+        name = (phase.get("nom") or phase.get("name") or "").strip()
         if desc:
             chunks.append(Chunk(
                 section="phase",

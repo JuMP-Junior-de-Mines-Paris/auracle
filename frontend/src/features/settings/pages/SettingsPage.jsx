@@ -6,6 +6,7 @@ import { roleMeta, GROUPES } from '../../../shared/lib/roles'
 import { useAction } from '../../../shared/components/ToastProvider'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { usePermissions } from '../../auth/hooks/usePermissions'
+import AiKeyForm from '../components/AiKeyForm'
 
 function Bloc({ titre, children, aide }) {
   return (
@@ -115,6 +116,11 @@ export default function SettingsPage() {
               changer ici, et la base le refuserait de toute façon.
             </span>
           </div>
+        </Bloc>
+
+        <Bloc titre="Intelligence artificielle"
+              aide="Pour rédiger les textes d’une convention d’étude à partir de vos notes. Chacun utilise sa propre clé Gemini.">
+          <AiKeyForm />
         </Bloc>
 
         <Bloc titre="Vos droits" aide={`${detenues.length} permission${detenues.length !== 1 ? 's' : ''} attachée${detenues.length !== 1 ? 's' : ''} à votre rôle.`}>
