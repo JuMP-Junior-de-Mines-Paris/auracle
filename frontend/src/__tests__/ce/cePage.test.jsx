@@ -178,3 +178,97 @@ describe('Page convention d’étude', () => {
     expect(await screen.findByText(/Connexion au serveur impossible/)).toBeInTheDocument()
   })
 })
+
+describe('Archivage de la convention', () => {
+  const json = (status, corps) => ({ ok: status < 400, status, text: async () => JSON.stringify(corps) })
+  const exportOk = { ok: true, status: 200, headers: { get: () => null }, blob: async () => new Blob(['x']) }
+  const sauvegardes = fetchMock => fetchMock.mock.calls.filter(([url]) => url === '/api/ce/save')
+
+  // Un faux backend : chaque route répond à sa façon, tout le reste est une panne.
+  function backend({ save = json(200, { ce_id: 'c1', mission_id: 'm1', created: true }) } = {}) {
+    const fetchMock = vi.fn(async url => {
+      if (url.startsWith('/api/ce/export-docx')) return exportOk
+      if (url === '/api/ce/save') return save
+      return json(200, {})
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    return fetchMock
+  }
+
+  it('« Enregistrer » range la convention dans les archives sans télécharger de document', async () => {
+    const fetchMock = backend()
+    monter()
+    await userEvent.type(screen.getByLabelText(/Référence de la convention/), 'CE-7')
+    await userEvent.click(bouton(/Enregistrer/))
+
+    expect(await screen.findByText('Convention enregistrée dans les archives.')).toBeInTheDocument()
+    const [url, init] = sauvegardes(fetchMock)[0]
+    expect(url).toBe('/api/ce/save')
+    expect(init.method).toBe('POST')
+    expect(init.headers.Authorization).toBe('Bearer jeton-test')
+    expect(JSON.parse(init.body).ref_ce).toBe('CE-7')
+    expect(exports(fetchMock)).toHaveLength(0)
+  })
+
+  it('enregistrer deux fois annonce une mise à jour, pas une nouvelle archive', async () => {
+    backend({ save: json(200, { ce_id: 'c1', mission_id: 'm1', created: false }) })
+    monter()
+    await userEvent.click(bouton(/Enregistrer/))
+    expect(await screen.findByText('Convention mise à jour dans les archives.')).toBeInTheDocument()
+  })
+
+  it('exporter archive aussi la convention', async () => {
+    const fetchMock = backend()
+    monter()
+    await userEvent.type(screen.getByLabelText(/Référence de la convention/), 'CE-8')
+    await userEvent.click(bouton(/Générer la convention/))
+
+    expect(await screen.findByText('Convention générée et téléchargée.')).toBeInTheDocument()
+    await waitFor(() => expect(sauvegardes(fetchMock)).toHaveLength(1))
+    expect(JSON.parse(sauvegardes(fetchMock)[0][1].body).ref_ce).toBe('CE-8')
+    expect(await screen.findByText('Convention enregistrée dans les archives.')).toBeInTheDocument()
+  })
+
+  it('un export échoué n’archive rien', async () => {
+    const fetchMock = backend()
+    fetchMock.mockImplementation(async url => url === '/api/ce/save' ? json(200, {}) : json(422, { detail: { code: 'incomplete', missing: ['Contexte'] } }))
+    monter()
+    await userEvent.click(bouton(/Générer la convention/))
+    await screen.findByText('Des sections obligatoires sont vides.')
+    expect(sauvegardes(fetchMock)).toHaveLength(0)
+  })
+
+  it('sans le droit de rédiger, l’export reste possible et ne crie pas au refus', async () => {
+    backend({ save: json(403, { detail: 'Permission requise : ce.write' }) })
+    monter()
+    await userEvent.click(bouton(/Générer la convention/))
+    expect(await screen.findByText('Convention générée et téléchargée.')).toBeInTheDocument()
+    await waitFor(() => expect(bouton(/Enregistrer/)).toBeEnabled())
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByText(/non archivé/)).not.toBeInTheDocument()
+  })
+
+  it('« Enregistrer » explique le refus quand le droit manque', async () => {
+    backend({ save: json(403, { detail: 'Permission requise : ce.write' }) })
+    monter()
+    await userEvent.click(bouton(/Enregistrer/))
+    expect(await screen.findByRole('alert')).toHaveTextContent('ce.write')
+  })
+
+  it('« Enregistrer » liste les champs invalides renvoyés par l’API', async () => {
+    backend({ save: json(422, { detail: [{ loc: ['body', 'ref_ce'], type: 'string_too_short', msg: 'x' }] }) })
+    monter()
+    await userEvent.click(bouton(/Enregistrer/))
+    expect(await screen.findByText('Certains champs sont invalides.')).toBeInTheDocument()
+    expect(screen.getByText(/Référence : champ obligatoire/)).toBeInTheDocument()
+  })
+
+  it('un échec d’archivage après l’export prévient sans retirer le téléchargement', async () => {
+    backend({ save: json(503, { detail: { code: 'archive_unavailable', message: 'L’enregistrement dans les archives a échoué.' } }) })
+    monter()
+    await userEvent.click(bouton(/Générer la convention/))
+    expect(await screen.findByText('Convention générée et téléchargée.')).toBeInTheDocument()
+    expect(await screen.findByText(/Document téléchargé, mais non archivé/)).toBeInTheDocument()
+  })
+})

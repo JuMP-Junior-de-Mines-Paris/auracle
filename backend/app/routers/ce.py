@@ -2,13 +2,14 @@
 """Génération de la convention d'étude.
 
 Le chef de projet remplit un formulaire ; ce routeur le transforme en
-document Word. Aucune donnée n'est conservée ici : l'export est pur, ce qui
-le rend sûr à rappeler autant de fois que nécessaire.
+document Word. L'export est pur (rien n'est conservé), ce qui le rend sûr à
+rappeler autant de fois que nécessaire ; seul /save écrit, dans les archives.
 
 Deux garde-fous vivent côté serveur, pas dans l'interface :
   - un texte produit par l'IA et non relu bloque l'export ;
   - une section obligatoire vide aussi (sauf export « brouillon » explicite).
 """
+import logging
 import re
 import sys
 
@@ -16,13 +17,16 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from app.auth import get_current_user
-from app.services import ai_keys, llm
+from pydantic import BaseModel
+
+from app.auth import get_current_user, get_user_permissions
+from app.services import ai_keys, ce_archive, llm
 from app.services.ce_docx import render_ce
 from app.services.ce_generate import GenerateRequest, GenerateResult, generate
 from app.services.ce_globals import globals_payload
 from app.services.ce_schema import CEData, missing_required_fields, unreviewed_ai_fields
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 _security = HTTPBearer()
 
@@ -37,6 +41,24 @@ async def _auth_dep(credentials: HTTPAuthorizationCredentials = Depends(_securit
     pour qu'on ne fasse pas tourner la génération pour des inconnus.
     """
     return await sys.modules[__name__].get_current_user(credentials)
+
+
+async def _writer_dep(credentials: HTTPAuthorizationCredentials = Depends(_security)):
+    """Enregistrer écrit dans la base partagée : il faut ce.write (admin.full vaut joker).
+
+    Le service-role contourne la RLS, donc le contrôle est fait ici, comme
+    pour les routes d'administration.
+    """
+    mod = sys.modules[__name__]
+    user = await mod.get_current_user(credentials)
+    try:
+        held = mod.get_user_permissions(str(user.id))
+    except Exception as exc:
+        logger.warning("Permission lookup failed: %s", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="Permission check unavailable")
+    if "admin.full" in held or "ce.write" in held:
+        return user
+    raise HTTPException(status_code=403, detail="Permission requise : ce.write")
 
 
 def _filename(ref_ce: str, brouillon: bool) -> str:
@@ -112,3 +134,26 @@ async def generate_texts(req: GenerateRequest, user=Depends(_auth_dep)):
         return await generate(req, cle)
     except llm.LLMError as exc:
         raise _ai_error(exc.status, exc.code, str(exc))
+
+
+class SaveResult(BaseModel):
+    ce_id: str
+    mission_id: str
+    created: bool
+
+
+@router.post("/save", response_model=SaveResult)
+async def save(data: CEData, user=Depends(_writer_dep)):
+    """Enregistre la convention et la range dans les archives (catégorie « convention d'étude »).
+
+    Chaque référence de convention correspond à une mission archivée :
+    enregistrer à nouveau la même référence met cette mission à jour. Un
+    brouillon incomplet ou des textes IA non relus sont acceptés : la
+    relecture ne bloque que le document Word.
+    """
+    try:
+        r = ce_archive.archive(data, str(user.id))
+    except Exception as exc:
+        logger.warning("Archivage de la convention impossible : %s", type(exc).__name__)
+        raise _ai_error(503, "archive_unavailable", "L'enregistrement dans les archives a échoué (migration 023 appliquée ?). Réessayez ou prévenez le bureau.")
+    return SaveResult(ce_id=r.ce_id, mission_id=r.mission_id, created=r.created)
