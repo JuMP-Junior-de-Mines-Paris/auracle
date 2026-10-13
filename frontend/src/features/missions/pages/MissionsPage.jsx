@@ -30,16 +30,23 @@ export default function MissionsPage() {
   const { members, loading: loadingMembers } = useMembers()
   const [showForm, setShowForm] = useState(false)
   const navigate = useNavigate()
+  // Les missions archivées (dont les conventions enregistrées) vivent dans /archives.
+  const actives = missions.filter(m => m.status !== 'archived')
 
   return (
     <div className="px-8 py-6 fade-up">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <h1 className="page-title">Missions</h1>
-        <Can perm="missions.create">
-          <button className="btn-ember flex items-center gap-1.5" onClick={() => setShowForm(true)}>
-            <Icon name="plus" size={14} /> Nouvelle mission
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn-ghost flex items-center gap-1.5" onClick={() => navigate('/archives')}>
+            <Icon name="inbox" size={14} /> Archives
           </button>
-        </Can>
+          <Can perm="missions.create">
+            <button className="btn-ember flex items-center gap-1.5" onClick={() => setShowForm(true)}>
+              <Icon name="plus" size={14} /> Nouvelle mission
+            </button>
+          </Can>
+        </div>
       </div>
 
       {loading ? (
@@ -48,7 +55,7 @@ export default function MissionsPage() {
         <div className="card" style={{ padding: '40px', textAlign: 'center', color: 'var(--bad)', fontSize: 14 }}>
           {error}
         </div>
-      ) : missions.length === 0 ? (
+      ) : actives.length === 0 ? (
         <div className="card" style={{ padding: '60px 40px', textAlign: 'center', color: 'var(--ink-3)' }}>
           Aucune mission pour le moment.
         </div>
@@ -63,7 +70,7 @@ export default function MissionsPage() {
               </tr>
             </thead>
             <tbody>
-              {missions.map(m => (
+              {actives.map(m => (
                 <tr
                   key={m.id}
                   onClick={() => navigate(`/missions/${m.id}`)}

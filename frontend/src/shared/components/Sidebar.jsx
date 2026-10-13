@@ -5,7 +5,7 @@ import { roleMeta } from '../../shared/lib/roles'
 import { useAuth } from '../../features/auth/hooks/useAuth'
 import { usePermissions } from '../../features/auth/hooks/usePermissions'
 
-// Douze entrées au lieu de treize : « Mes missions » n'était qu'un filtre
+// Treize entrées au lieu de quatorze : « Mes missions » n'était qu'un filtre
 // de Missions et le duplique — Tâches fait déjà cela avec un bouton. La
 // liste des membres, elle, existait aussi comme onglet d'Administration ;
 // c'est désormais un seul écran, qui laisse éditer le rôle à qui en a le
@@ -17,6 +17,7 @@ const NAV_SECTIONS = [
       { to: '/dashboard', icon: 'home',      label: 'Accueil' },
       { to: '/taches',    icon: 'check',     label: 'Tâches' },
       { to: '/missions',  icon: 'briefcase', label: 'Missions' },
+      { to: '/archives',  icon: 'inbox',     label: 'Archives' },
       { to: '/carnets',   icon: 'book',      label: 'Carnets' },
       { to: '/conventions', icon: 'edit',   label: 'Conventions' },
     ],

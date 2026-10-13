@@ -53,8 +53,8 @@ export default function MissionDetailPage() {
   return (
     <div className="px-8 py-6 fade-up">
       <div style={{ marginBottom: 24 }}>
-        <button className="btn-ghost flex items-center gap-1.5" style={{ marginBottom: 12, fontSize: 13 }} onClick={() => navigate('/missions')}>
-          <Icon name="arrowL" size={13} /> Missions
+        <button className="btn-ghost flex items-center gap-1.5" style={{ marginBottom: 12, fontSize: 13 }} onClick={() => navigate(mission.status === 'archived' ? '/archives' : '/missions')}>
+          <Icon name="arrowL" size={13} /> {mission.status === 'archived' ? 'Archives' : 'Missions'}
         </button>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
           <div>

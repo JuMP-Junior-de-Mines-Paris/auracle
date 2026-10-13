@@ -21,6 +21,7 @@ import SettingsPage from './features/settings/pages/SettingsPage'
 import NotebooksPage from './features/notebooks/pages/NotebooksPage'
 import NotebookPage from './features/notebooks/pages/NotebookPage'
 import CePage from './features/ce/pages/CePage'
+import ArchivesPage from './features/archives/pages/ArchivesPage'
 import { ToastProvider } from './shared/components/ToastProvider'
 
 function Protected({ children }) {
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="/admin" element={<Protected><RoleRoute perm={['members.set_role', 'permissions.manage', 'audit.read']}><AdminPage /></RoleRoute></Protected>} />
           <Route path="/missions" element={<Protected><MissionsPage /></Protected>} />
           <Route path="/missions/:id" element={<Protected><MissionDetailPage /></Protected>} />
+          <Route path="/archives" element={<Protected><ArchivesPage /></Protected>} />
           <Route path="/dashboard" element={<Protected><DashboardPage /></Protected>} />
           <Route path="/settings" element={<Protected><SettingsPage /></Protected>} />
         </Routes>

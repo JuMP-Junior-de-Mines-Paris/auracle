@@ -3,6 +3,7 @@ import { Icon } from '../../../shared/lib/icons'
 import { useToast } from '../../../shared/components/ToastProvider'
 import { Section, Row, Text, Select, Person, Prose, Remove } from '../components/Fields'
 import { useCeExport } from '../hooks/useCeExport'
+import { useCeSave } from '../hooks/useCeSave'
 import { useCeGlobals } from '../hooks/useCeGlobals'
 import {
   PROSE, TYPES_CLIENT, JEH_MIN, JEH_MAX, aRelire, chargerBrouillon, avecGlobales, completerIntervenants, effacerBrouillon, eur, fusionner,
@@ -14,7 +15,10 @@ export default function CePage() {
   const toast = useToast()
   const globales = useCeGlobals()
   const [s, setS] = useState(() => completerIntervenants(fusionner(initialState(), chargerBrouillon())))
-  const { exporting, error, exportDocx, clearError } = useCeExport()
+  const { exporting, error: exportError, exportDocx, clearError } = useCeExport()
+  const { saving, saveError, save, clearSaveError } = useCeSave()
+  const error = exportError ?? saveError
+  const occupe = exporting || saving
 
   useEffect(() => { sauverBrouillon(s) }, [s])
   // Les valeurs d'usage du serveur remplacent celles que personne n'a touchées.
@@ -42,10 +46,22 @@ export default function CePage() {
     onReview: ok => setS(prev => ({ ...prev, reviews: setReviewed(prev.reviews, path, ok) })),
   })
 
+  async function enregistrer() {
+    clearError()
+    const r = await save(s)
+    if (r.ok) toast.succes(r.data?.created ? 'Convention enregistrée dans les archives.' : 'Convention mise à jour dans les archives.')
+  }
+
   async function generer(brouillon) {
-    if (await exportDocx(s, { brouillon })) {
-      toast.succes(brouillon ? 'Brouillon téléchargé.' : 'Convention générée et téléchargée.')
-    }
+    clearSaveError()
+    if (!(await exportDocx(s, { brouillon }))) return
+    toast.succes(brouillon ? 'Brouillon téléchargé.' : 'Convention générée et téléchargée.')
+    // Exporter archive aussi la convention. Sans le droit de rédiger, le
+    // document reste téléchargeable : on n'alerte pas pour un refus attendu.
+    const r = await save(s)
+    if (r.ok) { toast.succes('Convention enregistrée dans les archives.'); return }
+    clearSaveError()    // le document est téléchargé : un toast suffit, pas de bandeau d'erreur
+    if (r.status !== 403) toast.erreur(`Document téléchargé, mais non archivé : ${r.error.title}`)
   }
 
   function recommencer() {
@@ -53,6 +69,7 @@ export default function CePage() {
     effacerBrouillon()
     setS(initialState(new Date(), globales ?? {}))
     clearError()
+    clearSaveError()
   }
 
   return (
@@ -215,11 +232,15 @@ export default function CePage() {
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', bottom: 0, padding: '12px 0', background: 'var(--paper)' }}>
-        <button type="button" className="btn-ember" disabled={exporting || aRevoir.length > 0} onClick={() => generer(false)}
-          style={{ opacity: exporting || aRevoir.length > 0 ? 0.6 : 1 }}>
+        <button type="button" className="btn-ember" disabled={occupe || aRevoir.length > 0} onClick={() => generer(false)}
+          style={{ opacity: occupe || aRevoir.length > 0 ? 0.6 : 1 }}>
           <Icon name="download" size={14} /> {exporting ? 'Génération…' : 'Générer la convention (.docx)'}
         </button>
-        <button type="button" className="btn-ghost" disabled={exporting || aRevoir.length > 0} onClick={() => generer(true)}>Brouillon</button>
+        <button type="button" className="btn-ghost" disabled={occupe || aRevoir.length > 0} onClick={() => generer(true)}>Brouillon</button>
+        <button type="button" className="btn-ghost" disabled={occupe} onClick={enregistrer}
+          title="Range la convention dans les archives, sans télécharger de document">
+          <Icon name="inbox" size={14} /> {saving ? 'Enregistrement…' : 'Enregistrer'}
+        </button>
         {aRevoir.length > 0 && (
           <span style={{ fontSize: 13, color: 'var(--ember-2)' }}>
             {aRevoir.length} texte{aRevoir.length > 1 ? 's' : ''} généré{aRevoir.length > 1 ? 's' : ''} par l’IA à relire avant de générer.
