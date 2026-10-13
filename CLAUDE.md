@@ -85,6 +85,7 @@ Formulaire React (`/conventions`, ouvert à tout membre connecté : aucune permi
 
 ### One-time scripts (run after Railway is up and DB migration is applied)
 - Seed references library: `conda run -n jump-oracle python -m scripts.seed_references`
+- Archiver les anciennes conventions du dossier `ce/` (22/ et 24/ : PDF, .md en secours) : `cd backend && .venv/bin/pip install pypdf && .venv/bin/python -m scripts.archive_old_ces ../ce --dry-run`, puis sans `--dry-run` avec `--created-by <uuid profil>`. Lecture par titres, sans IA ; chaque convention devient une mission archivée + une ligne `ce_documents` (statut `final`, non indexée RAG), idempotent sur la référence. Sur ce Mac, ajouter `SSL_CERT_FILE=$(.venv/bin/python -c 'import certifi;print(certifi.where())')`.
 - Batch ingest existing CEs: `conda run -n jump-oracle python -m scripts.batch_ingest /path/to/docx/files`
 
 ### Database migration (manual — Supabase SQL Editor)
